@@ -5,10 +5,25 @@ project(controller_package)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  message_generation
+)
+
+# Add messages
+add_message_files(
+  FILES
+  MovementRequest.msg
+)
+
+# Generate messages
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 # Declare a catkin package
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs
+)
 
 # Include directories
 include_directories(
