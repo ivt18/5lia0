@@ -27,11 +27,18 @@ class ControllerNode:
         rospy.loginfo("Controller node initialized!")
 
         while True:
-            action = input("desired action: ")
-            distance = input("distance: ")
-            unit = input("unit: ")
+            # action = input("desired action: ")
+            # distance = input("distance: ")
+            # unit = input("unit: ")
 
-            print(action, distance, unit)
+            # print(action, distance, unit)
+
+            msg = MovementRequest()
+
+            msg.left_wheel = int(input("left wheel speed: "))
+            self.right_wheel = int(input("right wheel speed: "))
+            self.publisher.publish(msg)
+            rospy.loginfo("Sent request: left_wheel = %s, right_wheel = %s", msg.left_wheel, msg.right_wheel)
 
 
 if __name__ == "__main__":

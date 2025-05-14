@@ -26,8 +26,6 @@ class MotorDriverNode:
             queue_size=10,
         )
 
-        self.sendSequence = 0
-
         self.initialized = True
         rospy.loginfo("Motor driver node initialized!")
 
