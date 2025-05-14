@@ -1,66 +1,55 @@
 #!/usr/bin/env python2
 
-from typing import Tuple
-
 import numpy as np
 import rospy
 
 from config.config import get_car_config
-from msg import Pose
+from msg import Pose, EncoderData
 
-from datatypes import Pose, CarConfig
+from datatypes import Pose
 
 
 class PoseEstimatorNode:
 
     def __init__(self, node_name: str):
-        self.initialized: bool = False
-        self.node_name: str = node_name
+        self.initialized = False
+        self.node_name = node_name
         rospy.loginfo("Initializing {name}...".format(name=node_name))
         rospy.init_node(self.node_name, anonymous=True)
 
-        self.config: CarConfig = get_car_config()
-        self.pose: Pose = Pose(0, 0, 0)
+        self.config = get_car_config()
+        self.pose = Pose(0, 0, 0)
 
         # Construct subscriber
-        self.encoder: rospy.Subscriber = rospy.Subscriber(
-            "/encoder",
-            Encoder,
+        self.encoder = rospy.Subscriber(
+            "/motor_driver/encoder",
+            EncoderData,
             self.read_encoder,
             buff_size=1000000,
             queue_size=1,
         )
 
         # Construct pulisher
-        self.publisher: rospy.Publisher = rospy.Publisher(
-            "/motor_driver/pos",
+        self.publisher = rospy.Publisher(
+            "/motor_driver/pose",
             Pose,
             queue_size=1,
         )
 
         self.initialized = True
         rospy.loginfo("{name} initialized".format(node_name))
-        # TODO: set publish timer
     
-    def read_encoder(self, data) -> None:
+    def read_encoder(self, encoder_data):
         if not self.initialized:
             return
         
-        # TODO: read encoder data
-        left_theta
-        right_theta
+        # update pose
+        self.pose = self.pose_estimation(encoder_data.delta_left.data, encoder_data.delta_right.data)
 
-        # TODO: use delta_phi? how?
-        
-        self.pose = self.pose_estimation(
-            self.pose.theta,
-            left_theta,
-            right_theta
-        )
+        # publish updated pose
+        self.publish()
     
-    def publish(self, event) -> None:
-        # TODO: do we publish periodically or whenever we get new encoder data?
-        
+    def publish(self, event):
         msg = Pose()
         msg.x.data = self.pose.x
         msg.y.data = self.pose.y
@@ -69,58 +58,28 @@ class PoseEstimatorNode:
         self.publisher.publish(msg)
         rospy.loginfo("Published current pose estimation")
     
-    def delta_phi(ticks: int, prev_ticks: int, resolution: int) -> Tuple[float, float]:
-        """
-        Args:
-            ticks: Current tick count from the encoders.
-            prev_ticks: Previous tick count from the encoders.
-            resolution: Number of ticks per full wheel rotation returned by the encoder.
-        Return:
-            dphi: Rotation of the wheel in radians.
-            ticks: current number of ticks.
-        """
-
-        delta_ticks = ticks - prev_ticks
-        N_tot = 135
-
-        delta_rot = delta_ticks / N_tot
-        dphi = delta_rot * 2 * np.pi
-
-        return dphi, ticks
-    
-    def pose_estimation(self,
-        theta_prev: float,
-        delta_phi_left: float,
-        delta_phi_right: float,
-    ) -> Tuple[float, float, float]:
+    def pose_estimation(self, delta_phi_left, delta_phi_right):
 
         """
         Calculate the current Duckiebot pose using the dead-reckoning model.
 
         Args:
-            x_prev:             previous x estimate - assume given
-            y_prev:             previous y estimate - assume given
-            theta_prev:         previous orientation estimate - assume given
             delta_phi_left:     left wheel rotation (rad)
             delta_phi_right:    right wheel rotation (rad)
 
         Return:
-            x_curr:                  estimated x coordinate
-            y_curr:                  estimated y coordinate
-            theta_curr:              estimated heading
+            estimation:         Pose object containing estimated x, y and heading
         """
 
         # radius of the wheel (both wheels are assumed to have the same size)
-        R: float = self.wheel_radius
-        # distance from wheel to wheel
-        wheelbase: float = self.wheelbase
+        R = self.wheel_radius
 
-        estimation: Pose = self.pose
+        estimation = self.pose
 
         d_left = R * delta_phi_left
         d_right = R * delta_phi_right
-        delta_theta = (d_right - d_left) / wheelbase
-        estimation.theta = theta_prev + delta_theta
+        delta_theta = (d_right - d_left) / self.wheelbase
+        estimation.theta = self.pose.theta + delta_theta
 
         delta_dist = (d_left + d_right) / 2
         delta_x = delta_dist * np.cos(estimation.theta)

@@ -1,4 +1,5 @@
 <launch>
+  <node pkg="motor_driver_package" type="encoder_reader_node.py" name="encoder_reader_node" output="screen"></node>
   <node pkg="motor_driver_package" type="motor_driver_node.py" name="motor_driver_node" output="screen"></node>
   <node pkg="motor_driver_package" type="pose_estimator_node.py" name="pose_estimator_node" output="screen"></node>
 </launch>

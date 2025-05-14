@@ -2,3 +2,7 @@ gain: 0.75
 trim: -0.0052
 wheelbase: 0.17
 wheel_radius: 0.065
+wheel-encoder:
+  - GPIO_LEFT: 18
+  - GPIO_RIGHT: 19
+  - resolution: 137
