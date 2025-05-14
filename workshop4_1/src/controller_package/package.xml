@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>controller_package</name>
+    <version>0.1.0</version>
+    <description>Movement controller package for the Jetson Nano.</description>
+
+    <!-- Maintainership Information -->
+    <maintainer email="i.v.teofilov@student.tue.nl">I.Teofilov</maintainer>
+    <license>BSD</license>
+
+    <!-- ROS dependencies -->
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>rospy</build_depend>
+    <build_depend>std_msgs</build_depend>
+
+    <!-- Runtime dependencies -->
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+
+    <!-- Optional: testing dependencies -->
+    <test_depend>rostest</test_depend>
+    <test_depend>roslaunch</test_depend>
+</package>
