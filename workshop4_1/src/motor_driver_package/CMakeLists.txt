@@ -22,5 +22,6 @@ install(DIRECTORY launch/
 # Install Python scripts
 catkin_install_python(PROGRAMS
   src/motor_driver_node.py
+  src/pose_estimator_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
