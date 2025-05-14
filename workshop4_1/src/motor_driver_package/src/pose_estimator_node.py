@@ -11,7 +11,7 @@ from datatypes import Pose
 
 class PoseEstimatorNode:
 
-    def __init__(self, node_name: str):
+    def __init__(self, node_name):
         self.initialized = False
         self.node_name = node_name
         rospy.loginfo("Initializing {name}...".format(name=node_name))

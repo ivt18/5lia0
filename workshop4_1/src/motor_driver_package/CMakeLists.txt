@@ -5,6 +5,7 @@ project(motor_driver_package)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  message_generation
 )
 
 # Declare a catkin package
@@ -21,7 +22,7 @@ install(DIRECTORY launch/
 
 # Install Python scripts
 catkin_install_python(PROGRAMS
-  src/encorder_reader_node.py
+  src/encoder_reader_node.py
   src/motor_driver_node.py
   src/pose_estimator_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
