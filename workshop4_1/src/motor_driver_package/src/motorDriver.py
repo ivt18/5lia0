@@ -23,37 +23,18 @@ class DaguWheelsDriver:
         self.rightSpeed = 0.0
         self._pwm_update()
 
-    def set_wheels_speed(self, left, right):
-        """Sets speed of motors.
-
-        Args:
-           left (:obj:`float`): speed for the left wheel, should be between -1 and 1
-           right (:obj:`float`): speed for the right wheel, should be between -1 and 1
-        """
+    def set_wheel_speed(self, left, right):
         self.leftSpeed = left
         self.rightSpeed = right
         self._pwm_update()
 
     def _pwm_value(self, v, min_pwm, max_pwm):
-        """Transforms the requested speed into an int8 number.
-
-        Args:
-            v (:obj:`float`): requested speed, should be between -1 and 1.
-            min_pwm (:obj:`int8`): minimum speed as int8
-            max_pwm (:obj:`int8`): maximum speed as int8
-        """
         pwm = 0
         if fabs(v) > self.SPEED_TOLERANCE:
             pwm = int(floor(fabs(v) * (max_pwm - min_pwm) + min_pwm))
         return min(pwm, max_pwm)
 
     def _pwm_update(self):
-        """Sends commands to the microcontroller.
-
-        Updates the current PWM signals (left and right) according to the
-        linear velocities of the motors. The requested speed gets
-        tresholded.
-        """
         vl = self.leftSpeed
         vr = self.rightSpeed
 
@@ -80,7 +61,6 @@ class DaguWheelsDriver:
         self.rightMotor.set(rightMotorMode, pwmr)
 
     def close(self):
-        """Releases the motors and cleans up resources."""
         self.leftMotor.set(hat.MotorDirection.RELEASE)
         self.rightMotor.set(hat.MotorDirection.RELEASE)
         GPIO.cleanup()

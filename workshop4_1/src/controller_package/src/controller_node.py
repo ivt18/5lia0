@@ -3,7 +3,7 @@
 import rospy
 import time
 
-from controller_package.msg import MovementRequest
+from msg import MovementRequest
 
 
 class ControllerNode:
@@ -32,7 +32,7 @@ class ControllerNode:
             unit = input("unit: ")
 
             print(action, distance, unit)
-    
+
 
 if __name__ == "__main__":
     try:
