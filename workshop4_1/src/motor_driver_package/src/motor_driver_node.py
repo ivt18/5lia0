@@ -3,18 +3,17 @@
 import rospy
 import time
 
-from controller_package.msg import MovementRequest
+from motor_driver_package.msg import MovementRequest
 
-
-class ControllerNode:
+class MotorDriverNode:
     def __init__(self, node_name):
         self.initialized = False
         self.node_name = node_name
-        rospy.loginfo("Initializing controller node...")
+        rospy.loginfo("Initializing motor driver node...")
         rospy.init_node(self.node_name, anonymous=True)
 
-        # Construct publishers
-        self.publisher = rospy.Publisher(
+        # Construct subscriber
+        self.subscriber = rospy.Subscriber(
             "/motors",
             MovementRequest,
             #Change buff size and queue size accordingly
@@ -24,19 +23,12 @@ class ControllerNode:
         self.sendSequence = 0
 
         self.initialized = True
-        rospy.loginfo("Controller node initialized!")
-
-        while True:
-            action = input("desired action: ")
-            distance = input("distance: ")
-            unit = input("unit: ")
-
-            print(action, distance, unit)
+        rospy.loginfo("Motor driver node initialized!")
     
 
 if __name__ == "__main__":
     try:
-        controller_node = Node(node_name = "controller_node")
+        motor_driver_node = Node(node_name = "motor_driver_node")
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
