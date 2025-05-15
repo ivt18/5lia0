@@ -1,0 +1,2 @@
+source devel/setup.bash
+roslaunch motor_driver_package motor_driver_node.launch
