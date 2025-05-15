@@ -18,7 +18,7 @@ add_message_files(
 
 # Generate messages
 generate_messages(
-  DEPENDECIES
+  DEPENDENCIES
   std_msgs
 )
 
