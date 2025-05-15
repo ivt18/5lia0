@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import rospy
 import time
 
-from msg import MovementRequest
+import rospy
+from controller_package.msg import MovementRequest
 
 
 class ControllerNode:
@@ -17,7 +17,7 @@ class ControllerNode:
         self.publisher = rospy.Publisher(
             "/motors",
             MovementRequest,
-            #Change buff size and queue size accordingly
+            # Change buff size and queue size accordingly
             queue_size=10,
         )
 
@@ -38,12 +38,16 @@ class ControllerNode:
             msg.left_wheel = int(input("left wheel speed: "))
             msg.right_wheel = int(input("right wheel speed: "))
             self.publisher.publish(msg)
-            rospy.loginfo("Sent request: left_wheel = %s, right_wheel = %s", msg.left_wheel, msg.right_wheel)
+            rospy.loginfo(
+                "Sent request: left_wheel = %s, right_wheel = %s",
+                msg.left_wheel,
+                msg.right_wheel,
+            )
 
 
 if __name__ == "__main__":
     try:
-        controller_node = Node(node_name = "controller_node")
+        controller_node = ControllerNode("controller_node")
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
