@@ -1,11 +1,12 @@
 #!/usr/bin/env python2
 
+import os
 import yaml
 
 from datatypes import CarConfig
 
 def read_config():
-    with open("config.yml") as stream:
+    with open("{cwd}/config.yml".format(cwd=os.path.dirname(os.path.abspath(__file__)))) as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
