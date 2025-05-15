@@ -8,6 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+# Add message files
+add_message_files(
+  FILES
+  EncoderData.msg
+  PIDData.msg
+  Pose.msg
+)
+
 # Declare a catkin package
 catkin_package()
 
