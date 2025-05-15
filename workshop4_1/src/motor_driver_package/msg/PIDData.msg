@@ -1,2 +1,2 @@
-bool direction_left
-bool direction_right
+int8 direction_left
+int8 direction_right

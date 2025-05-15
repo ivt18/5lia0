@@ -1,3 +1,3 @@
-float x
-float y
-float theta
+float32 x
+float32 y
+float32 theta

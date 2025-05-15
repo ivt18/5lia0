@@ -1,2 +1,2 @@
-float delta_left
-float delta_right
+float32 delta_left
+float32 delta_right
