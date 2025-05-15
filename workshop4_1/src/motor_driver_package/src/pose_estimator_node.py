@@ -5,7 +5,7 @@ import rospy
 
 from config import get_car_config
 from datatypes import Pose
-from msg import Pose, EncoderData
+from motor_driver_package.msg import Pose, EncoderData
 
 
 class PoseEstimatorNode:

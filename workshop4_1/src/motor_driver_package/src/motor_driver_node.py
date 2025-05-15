@@ -3,7 +3,7 @@
 import rospy
 from motorDriver import *
 
-from msg import MovementRequest
+from motor_driver_package.msg import MovementRequest
 
 class MotorDriverNode:
     

@@ -5,7 +5,7 @@ import rospy
 
 from config import get_wheel_encoder_config
 from encoderDriver import WheelEncoderDriver, WheelDirection
-from msg import EncoderData, PIDData
+from motor_driver_package.msg import EncoderData, PIDData
 
 
 class EncoderReaderNode:
