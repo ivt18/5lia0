@@ -36,7 +36,7 @@ class ControllerNode:
             msg = MovementRequest()
 
             msg.left_wheel = int(input("left wheel speed: "))
-            self.right_wheel = int(input("right wheel speed: "))
+            msg.right_wheel = int(input("right wheel speed: "))
             self.publisher.publish(msg)
             rospy.loginfo("Sent request: left_wheel = %s, right_wheel = %s", msg.left_wheel, msg.right_wheel)
 
