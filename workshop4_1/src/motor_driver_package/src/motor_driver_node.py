@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from .motorDriver import *
+from motorDriver import *
 
 from msg import MovementRequest
 

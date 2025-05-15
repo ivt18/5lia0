@@ -1,12 +1,11 @@
-from dataclasses import dataclass
-
-@dataclass
 class CarConfig:
-    wheel_radius: float
-    wheelbase: float
+    def __init__(self):
+        self.wheel_radius = 0.0
+        self.wheelbase = 0.0
 
-@dataclass
+
 class Pose:
-    x: float
-    y: float
-    theta: float
+    def __init__(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0

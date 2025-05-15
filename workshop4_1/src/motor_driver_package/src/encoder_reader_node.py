@@ -3,8 +3,8 @@
 import numpy as np
 import rospy
 
-from .config import get_wheel_encoder_config
-from .encoderDriver import WheelEncoderDriver, WheelDirection
+from config import get_wheel_encoder_config
+from encoderDriver import WheelEncoderDriver, WheelDirection
 from msg import EncoderData, PIDData
 
 
