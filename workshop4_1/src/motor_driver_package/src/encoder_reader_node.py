@@ -68,12 +68,12 @@ class EncoderReaderNode:
 
         # compute tick delta left wheel
         ticks_left = self.driver_left._ticks
-        d_left = self.delta_phi(ticks_left)
+        d_left = self.delta_phi(ticks_left, 0)
         msg.delta_left.data = d_left
 
         # compute tick delta right wheel
         ticks_right = self.driver_right._ticks
-        d_right = self.delta_phi(ticks_right)
+        d_right = self.delta_phi(ticks_right, 1)
         msg.delta_right.data = d_right
 
         # publish message
@@ -83,16 +83,16 @@ class EncoderReaderNode:
         # update ticks
         self.ticks = (ticks_left, ticks_right)
 
-    def delta_phi(self, ticks):
+    def delta_phi(self, ticks, direction):
         """
         Args:
             ticks: Current tick count from the encoders.
-            prev_ticks: Previous tick count from the encoders.
+            direction: 1 right; 0 left
         Return:
             dphi: Rotation of the wheel in radians.
         """
 
-        delta_ticks = ticks - self.ticks
+        delta_ticks = ticks - self.ticks[direction]
 
         delta_rot = delta_ticks / self.resolution
         dphi = delta_rot * 2 * np.pi
