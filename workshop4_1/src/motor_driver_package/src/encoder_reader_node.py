@@ -69,12 +69,12 @@ class EncoderReaderNode:
         # compute tick delta left wheel
         ticks_left = self.driver_left._ticks
         d_left = self.delta_phi(ticks_left, 0)
-        msg.delta_left.data = d_left
+        msg.delta_left = d_left
 
         # compute tick delta right wheel
         ticks_right = self.driver_right._ticks
         d_right = self.delta_phi(ticks_right, 1)
-        msg.delta_right.data = d_right
+        msg.delta_right = d_right
 
         # publish message
         self.publisher.publish(msg)
