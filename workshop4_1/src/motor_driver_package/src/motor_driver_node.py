@@ -18,7 +18,7 @@ class MotorDriverNode:
 
         # Construct subscriber
         self.subscriber = rospy.Subscriber(
-            "/motors",
+            "/motor_driver/motors",
             MovementRequest,
             self.receiveRequest,
             #Change buff size and queue size accordingly
