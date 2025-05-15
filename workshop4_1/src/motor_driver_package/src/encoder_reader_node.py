@@ -76,6 +76,9 @@ class EncoderReaderNode:
         d_right = self.delta_phi(ticks_right, 1)
         msg.delta_right = d_right
 
+        rospy.loginfo("Ticks: [{ticks_left} {ticks_right}]".format(ticks_left=ticks_left, ticks_right=ticks_right))
+        rospy.loginfo("Self ticks: [{ticks_left} {ticks_right}]".format(ticks_left=self.ticks[0], ticks_right=self.ticks[1]))
+
         # publish message
         self.publisher.publish(msg)
         rospy.loginfo("Published encoder data [{delta_left} {delta_right}]".format(delta_left=d_left, delta_right=d_right))
@@ -94,7 +97,7 @@ class EncoderReaderNode:
 
         delta_ticks = ticks - self.ticks[direction]
 
-        delta_rot = delta_ticks / self.resolution
+        delta_rot = float(delta_ticks) / float(self.resolution)
         dphi = delta_rot * 2 * np.pi
 
         return dphi
