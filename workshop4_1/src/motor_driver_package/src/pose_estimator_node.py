@@ -36,7 +36,7 @@ class PoseEstimatorNode:
         )
 
         self.initialized = True
-        rospy.loginfo("{name} initialized".format(node_name))
+        rospy.loginfo("{name} initialized".format(name=node_name))
     
     def read_encoder(self, encoder_data):
         if not self.initialized:
