@@ -51,8 +51,8 @@ class EncoderReaderNode:
             return
         
         # update wheel direction (moving forward/reverse)
-        direction_left = WheelDirection.FORWARD if data.direction_left.data else WheelDirection.REVERSE
-        direction_right = WheelDirection.FORWARD if data.direction_right.data else WheelDirection.REVERSE
+        direction_left = WheelDirection.FORWARD if data.direction_left else WheelDirection.REVERSE
+        direction_right = WheelDirection.FORWARD if data.direction_right else WheelDirection.REVERSE
 
         self.driver_left.set_direction(direction_left)
         self.driver_right.set_direction(direction_right)
