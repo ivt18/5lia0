@@ -71,13 +71,13 @@ class PoseEstimatorNode:
         """
 
         # radius of the wheel (both wheels are assumed to have the same size)
-        R = self.wheel_radius
+        R = self.config.wheel_radius
 
         estimation = self.pose
 
         d_left = R * delta_phi_left
         d_right = R * delta_phi_right
-        delta_theta = (d_right - d_left) / self.wheelbase
+        delta_theta = (d_right - d_left) / self.config.wheelbase
         estimation.theta = self.pose.theta + delta_theta
 
         delta_dist = (d_left + d_right) / 2
