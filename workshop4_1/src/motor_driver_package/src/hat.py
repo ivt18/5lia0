@@ -1,7 +1,7 @@
 from __future__ import print_function
 from abc import ABCMeta, abstractmethod
 import Jetson.GPIO as GPIO
-from .Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_PWM_Servo_Driver import PWM
 
 LOW = 0
 HIGH = 1

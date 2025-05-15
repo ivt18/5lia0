@@ -48,11 +48,11 @@ class PoseEstimatorNode:
         # publish updated pose
         self.publish()
     
-    def publish(self, event):
+    def publish(self):
         msg = Pose()
-        msg.x.data = self.pose.x
-        msg.y.data = self.pose.y
-        msg.theta.data = self.pose.theta
+        msg.x = self.pose.x
+        msg.y = self.pose.y
+        msg.theta = self.pose.theta
 
         self.publisher.publish(msg)
         rospy.loginfo("Published current pose estimation")

@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 import rospy
 from motorDriver import *
 
-from motor_driver_package.msg import MovementRequest
+from controller_package.msg import MovementRequest
 
 class MotorDriverNode:
     
@@ -38,7 +38,7 @@ class MotorDriverNode:
 
 if __name__ == "__main__":
     try:
-        motor_driver_node = Node(node_name = "motor_driver_node")
+        motor_driver_node = MotorDriverNode(node_name = "motor_driver_node")
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
