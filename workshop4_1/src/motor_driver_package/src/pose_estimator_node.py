@@ -3,10 +3,9 @@
 import numpy as np
 import rospy
 
-from config.config import get_car_config
+from .config import get_car_config
+from .datatypes import Pose
 from msg import Pose, EncoderData
-
-from datatypes import Pose
 
 
 class PoseEstimatorNode:

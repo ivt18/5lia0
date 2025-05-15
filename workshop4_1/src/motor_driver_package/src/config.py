@@ -2,7 +2,7 @@
 
 import yaml
 
-from datatypes import CarConfig
+from .datatypes import CarConfig
 
 def read_config():
     with open("config.yml") as stream:
