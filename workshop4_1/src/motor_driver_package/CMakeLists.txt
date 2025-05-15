@@ -16,8 +16,16 @@ add_message_files(
   Pose.msg
 )
 
+# Generate messages
+generate_messages(
+  DEPENDECIES
+  std_msgs
+)
+
 # Declare a catkin package
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs
+)
 
 # Include directories
 include_directories(
