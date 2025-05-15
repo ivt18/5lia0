@@ -43,7 +43,7 @@ class PoseEstimatorNode:
             return
         
         # update pose
-        self.pose = self.pose_estimation(encoder_data.delta_left.data, encoder_data.delta_right.data)
+        self.pose = self.pose_estimation(encoder_data.delta_left, encoder_data.delta_right)
 
         # publish updated pose
         self.publish()
