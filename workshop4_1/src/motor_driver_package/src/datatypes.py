@@ -1,11 +1,12 @@
 class CarConfig:
-    def __init__(self):
-        self.wheel_radius = 0.0
-        self.wheelbase = 0.0
+    def __init__(self, radius, wheelbase):
+        self.wheel_radius = radius
+        self.wheelbase = wheelbase
 
 
 class Pose:
-    def __init__(self):
-        self.x = 0.0
-        self.y = 0.0
-        self.theta = 0.0
+    def __init__(self, x, y, angle):
+        self.x = x
+        self.y = y
+        self.theta = angle
+
