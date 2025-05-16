@@ -15,13 +15,11 @@ class ControllerNode:
 
         # Construct publishers
         self.publisher = rospy.Publisher(
-            "/motors",
+            "/motor_driver/motors",
             MovementRequest,
             # Change buff size and queue size accordingly
             queue_size=10,
         )
-
-        self.sendSequence = 0
 
         self.initialized = True
         rospy.loginfo("Controller node initialized!")
