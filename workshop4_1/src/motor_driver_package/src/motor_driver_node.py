@@ -22,19 +22,19 @@ class MotorDriverNode:
             MovementRequest,
             self.receiveRequest,
             #Change buff size and queue size accordingly
-            buff_size=2**25,
+            buff_size=1000000,
             queue_size=10,
         )
 
         self.initialized = True
         rospy.loginfo("Motor driver node initialized!")
 
-    def receiveRequest(self, data):
+    def receiveRequest(self, motor_data):
         if not self.initialized:
             return
 
-        self.motor.set_wheel_speed(left = data.left_wheel, right = data.right_wheel)
-        rospy.loginfo("Received request: left_wheel = %s, right_wheel = %s", data.left_wheel, data.right_wheel)
+        self.motor.set_wheel_speed(left = motor_data.left_wheel, right = motor_data.right_wheel)
+        rospy.loginfo("Received request: left_wheel = %s, right_wheel = %s", motor_data.left_wheel, motor_data.right_wheel)
 
 
 if __name__ == "__main__":
