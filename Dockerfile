@@ -21,7 +21,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
 
 ARG HOME_DIR=/home/$USERNAME
 ARG ROS_MASTER_URI=http://jetbot.local:11311
-ARG CLIENT_IP=192.168.65.3 # change to your container's ip
+ARG CLIENT_IP=192.168.8.131 # change to your host's ip
 
 COPY EVC $HOME_DIR/EVC
 # COPY talker.py $HOME_DIR/
