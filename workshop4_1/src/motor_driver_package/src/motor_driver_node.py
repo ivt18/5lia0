@@ -22,6 +22,7 @@ class MotorDriverNode:
             MovementRequest,
             self.receiveRequest,
             #Change buff size and queue size accordingly
+            buff_size=2**25,
             queue_size=10,
         )
 

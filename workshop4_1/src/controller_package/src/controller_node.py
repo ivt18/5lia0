@@ -17,7 +17,6 @@ class ControllerNode:
         self.publisher = rospy.Publisher(
             "/motor_driver/motors",
             MovementRequest,
-            # Change buff size and queue size accordingly
             queue_size=10,
         )
 
