@@ -18,9 +18,10 @@ class ControllerNode:
         self.wheel_base = 0.17
         self.resolution = 137
 
-        self.x = 0
-        self.y = 0
-        self.theta = 0
+        self.current_pose = Pose()
+        self.current_pose.x = 0
+        self.current_pose.y = 0
+        self.current_pose.theta = 0
 
         # Construct publishers
         self.publisher = rospy.Publisher(
@@ -38,53 +39,45 @@ class ControllerNode:
 
         rospy.loginfo("Controller node initialized!")
 
-        while True:
-            # action = input("desired action: ")
-            # distance = input("distance: ")
-            # unit = input("unit: ")
+        # while True:
+        # action = input("desired action: ")
+        # distance = input("distance: ")
+        # unit = input("unit: ")
 
-            # print(action, distance, unit)
+        # print(action, distance, unit)
 
-            msg = MovementRequest()
+        #   msg = MovementRequest()
 
-            msg.left_wheel = int(input("left: "))
-            msg.right_wheel = int(input("right: "))
-            self.publisher.publish(msg)
-            rospy.loginfo(
-                "Sent request: left_wheel = %s, right_wheel = %s",
-                msg.left_wheel,
-                msg.right_wheel,
-            )
+        #    msg.left_wheel = int(input("left: "))
+        #    msg.right_wheel = int(input("right: "))
+        #    self.publisher.publish(msg)
+        #    rospy.loginfo(
+        #        "Sent request: left_wheel = %s, right_wheel = %s",
+        #        msg.left_wheel,
+        #        msg.right_wheel,
+        #
 
     # receive current pose from encoder
     def update_pose(self, msg):
         rospy.loginfo("Now at %s, %s, %s", msg.x, msg.y, msg.theta)
         if not self.initialized:
             self.initialized = True
-        self.x = msg.x
-        self.y = msg.y
-        self.theta = msg.theta
+        self.current_pose.x = msg.x
+        self.current_pose.y = msg.y
+        self.current_pose.theta = msg.theta
 
-    # get destination pose when turning by angle (in rad) and then traveling distance
-    def get_dest(self, distance, angle):
-        dest = Pose()
-        dest.theta = self.theta + angle
-        dest.x = self.x + np.cos(dest.theta) * distance
-        dest.y = self.y + np.sin(dest.theta) * distance
-
-        return dest
-
-    # returns whether the robot arrived at destination or not
-    def arrived(self, dest):
-        pose_v = np.array([self.x, self.y])
-        dest_v = np.array([dest.x, dest.y])
-        return np.linalg.norm(pose_v - dest_v) < 0.05  # define tolerance level
+    # computes distance between two Poses
+    def get_distance(self, start, end):
+        start_v = np.array([start.x, start.y])
+        end_v = np.array([end.x, end.y])
+        return np.linalg.norm(end_v - start_v)
 
     # moves straight a certain distance at a constant speed
     # assumes distance is in m, speed is in pwm (-1:1)
     # no endometry feedback control (yet), assumes destination is always reached
     def move_straight(self, distance, speed):
         if self.initialized:
+            start = self.current_pose
             dest = self.get_dest(distance, 0)
             start_msg = MovementRequest()
             start_msg.left_wheel = int(speed)
@@ -92,7 +85,7 @@ class ControllerNode:
             self.publisher.publish(start_msg)
             rospy.loginfo("Start moving at %s pwm", speed)
 
-            while not self.arrived(dest):
+            while self.get_distance(start, self.current_pose) < distance:
                 rospy.Rate(10).sleep
 
             stop_msg = MovementRequest()
@@ -105,7 +98,7 @@ class ControllerNode:
     # assumes angle is in rad
     def turn(self, angle, speed):
         if self.initialized:
-            dest_angle = self.theta + angle
+            dest_angle = self.current_pose.theta + angle
             start_msg = MovementRequest()
             if angle > 0:
                 start_msg.left_wheel = -int(speed)
@@ -119,7 +112,7 @@ class ControllerNode:
             self.publisher.publish(start_msg)
             rospy.loginfo("Start turning at %s pwm", speed)
 
-            while self.theta != dest_angle:
+            while self.current_pose.theta != dest_angle:
                 rospy.Rate(10).sleep
 
             stop_msg = MovementRequest()
