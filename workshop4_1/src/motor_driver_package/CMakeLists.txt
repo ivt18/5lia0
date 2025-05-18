@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   EncoderData.msg
-  PIDData.msg
   Position.msg
   MotorSpeedRequest.msg
 )
@@ -42,5 +41,6 @@ catkin_install_python(PROGRAMS
   src/encoder_reader_node.py
   src/motor_driver_node.py
   src/position_estimator_node.py
+  src/receiver_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

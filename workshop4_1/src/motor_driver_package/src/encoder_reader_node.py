@@ -5,7 +5,7 @@ import rospy
 
 from config import get_wheel_encoder_config
 from encoderDriver import WheelEncoderDriver, WheelDirection
-from motor_driver_package.msg import EncoderData, PIDData
+from motor_driver_package.msg import EncoderData, MotorSpeedRequest
 
 
 class EncoderReaderNode:
@@ -19,7 +19,7 @@ class EncoderReaderNode:
         # Construct subscriber
         self.motors_topic = rospy.Subscriber(
             "/motor_driver/motors",
-            PIDData,
+            MotorSpeedRequest,
             self.read_motors,
             buff_size=1000000,
             queue_size=1,
@@ -44,15 +44,15 @@ class EncoderReaderNode:
 
         self.initialized = True
         rospy.loginfo("{node} initialized".format(node=node_name))
-        self.timer = rospy.Timer(rospy.Duration(1.0), self.publish)
+        self.timer = rospy.Timer(rospy.Duration(0.05), self.publish)
     
     def read_motors(self, data):
         if not self.initialized:
             return
         
         # update wheel direction (moving forward/reverse)
-        direction_left = WheelDirection.FORWARD if data.direction_left else WheelDirection.REVERSE
-        direction_right = WheelDirection.FORWARD if data.direction_right else WheelDirection.REVERSE
+        direction_left = WheelDirection.FORWARD if data.speed_left_wheel > 0 else WheelDirection.REVERSE
+        direction_right = WheelDirection.FORWARD if data.speed_right_wheel > 0 else WheelDirection.REVERSE
 
         self.driver_left.set_direction(direction_left)
         self.driver_right.set_direction(direction_right)

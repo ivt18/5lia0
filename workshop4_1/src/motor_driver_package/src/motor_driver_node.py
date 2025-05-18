@@ -34,8 +34,12 @@ class MotorDriverNode:
         if not self.initialized:
             return
 
-        self.motor.set_wheel_speed(left = motor_data.left_wheel, right = motor_data.right_wheel)
-        rospy.loginfo("Received request: left_wheel = %s, right_wheel = %s", motor_data.left_wheel, motor_data.right_wheel)
+        self.motor.set_wheel_speed(
+            left = motor_data.speed_left_wheel,
+            right = motor_data.speed_right_wheel
+        )
+        rospy.loginfo("Received request: left_wheel = %f, right_wheel = %f",
+            motor_data.speed_left_wheel, motor_data.speed_right_wheel)
 
 
 if __name__ == "__main__":

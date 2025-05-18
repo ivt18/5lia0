@@ -37,16 +37,22 @@ class PositionEstimatorNode:
 
         self.initialized = True
         rospy.loginfo("{name} initialized".format(name=node_name))
+
     
     def read_encoder(self, encoder_data):
         if not self.initialized:
             return
         
         # update position
-        self.position = self.position_estimation(encoder_data.delta_left, encoder_data.delta_right)
+        self.position = self.position_estimation_relative(
+            self.position,
+            self.config.wheel_radius,
+            self.config.wheelbase,
+            encoder_data.delta_left, encoder_data.delta_right)
 
         # publish updated position
         self.publish()
+
     
     def publish(self):
         msg = Position()
@@ -55,11 +61,10 @@ class PositionEstimatorNode:
         msg.theta = self.position.theta
 
         self.publisher.publish(msg)
-        rospy.loginfo("Published current position estimation")
 
 
-    def position_estimation_relative(
-        relative_postion, R, wheelbase,
+    def position_estimation_relative(self,
+        relative_position, R, wheelbase,
         delta_phi_left, delta_phi_right):
         """
         Calculate the current Duckiebot position using the dead-reckoning model.
@@ -90,24 +95,6 @@ class PositionEstimatorNode:
         estimation.y = relative_position.y + delta_y
 
         return estimation
-    
-    def position_estimation(self, delta_phi_left, delta_phi_right):
-        """
-        Calculate the current Duckiebot position using the dead-reckoning model.
-
-        Args:
-            delta_phi_left:     left wheel rotation (rad)
-            delta_phi_right:    right wheel rotation (rad)
-
-        Return:
-            estimation:         Position object containing estimated x, y and heading
-        """
-
-        return position_estimation_relative(
-            self.position,
-            self.config.wheel_radius,
-            self.config.wheelbase,
-            delta_phi_left, delta_phi_right)
 
 
 if __name__ == '__main__':

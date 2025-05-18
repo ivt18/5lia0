@@ -1,2 +1,2 @@
-int8 speed_left_wheel
-int8 speed_right_wheel
+float32 speed_left_wheel
+float32 speed_right_wheel

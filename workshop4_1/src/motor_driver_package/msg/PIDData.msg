@@ -1,2 +1,0 @@
-int8 direction_left
-int8 direction_right
