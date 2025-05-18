@@ -14,7 +14,13 @@ def read_config():
 
 def get_car_config():
     config = read_config()
-    return CarConfig(config["wheel_radius"], config["wheelbase"])
+    return CarConfig(
+        config["wheel_radius"], config["wheelbase"]
+    )
+
+def get_motor_calibration_config():
+    config = read_config()
+    return config["motor-calibration"]
 
 def get_wheel_encoder_config():
     config = read_config()

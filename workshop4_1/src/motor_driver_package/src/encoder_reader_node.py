@@ -16,14 +16,14 @@ class EncoderReaderNode:
         rospy.loginfo("Initializing {node}...".format(node=node_name))
         rospy.init_node(self.node_name, anonymous=True)
 
-        # # Construct subscriber
-        # self.motors_topic = rospy.Subscriber(
-        #     "/motor_driver/motors",
-        #     PIDData,
-        #     self.read_motors,
-        #     buff_size=1000000,
-        #     queue_size=1,
-        # )
+        # Construct subscriber
+        self.motors_topic = rospy.Subscriber(
+            "/motor_driver/motors",
+            PIDData,
+            self.read_motors,
+            buff_size=1000000,
+            queue_size=1,
+        )
 
         # Construct publisher
         self.publisher = rospy.Publisher(
@@ -75,9 +75,6 @@ class EncoderReaderNode:
         ticks_right = self.driver_right._ticks
         d_right = self.delta_phi(ticks_right, 1)
         msg.delta_right = d_right
-
-        rospy.loginfo("Ticks: [{ticks_left} {ticks_right}]".format(ticks_left=ticks_left, ticks_right=ticks_right))
-        rospy.loginfo("Self ticks: [{ticks_left} {ticks_right}]".format(ticks_left=self.ticks[0], ticks_right=self.ticks[1]))
 
         # publish message
         self.publisher.publish(msg)

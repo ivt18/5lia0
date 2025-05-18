@@ -4,6 +4,7 @@ import rospy
 from motorDriver import *
 
 from controller_package.msg import MovementRequest
+from motor_driver_package.msg import MotorSpeedRequest
 
 class MotorDriverNode:
     
@@ -19,7 +20,7 @@ class MotorDriverNode:
         # Construct subscriber
         self.subscriber = rospy.Subscriber(
             "/motor_driver/motors",
-            MovementRequest,
+            MotorSpeedRequest,
             self.receiveRequest,
             #Change buff size and queue size accordingly
             buff_size=1000000,
