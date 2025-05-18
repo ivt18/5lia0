@@ -5,7 +5,6 @@ import time
 import numpy as np
 import rospy
 from controller_package.msg import MovementRequest
-from motor_driver_package.msg import Pose
 
 
 class ControllerNode:
