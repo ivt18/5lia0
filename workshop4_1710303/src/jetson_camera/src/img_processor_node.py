@@ -1,13 +1,12 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import cv2
-import rospy
 import numpy as np
+import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage
 
-from jetson_camera.msg import ProcessedImages
-
+from jetson_camera.msg import ObjectPosition, ProcessedImages
 
 chessboard_size = (7, 5)
 
@@ -30,6 +29,12 @@ class ImgProcessorNode:
         self.pub_image = rospy.Publisher(
             'camera/image_processed',
             ProcessedImages,
+            queue_size = 1
+        )
+
+        self.pub_position = rospy.Publisher(
+            'camera/object_position',
+            ObjectPosition,
             queue_size = 1
         )
 
@@ -56,6 +61,7 @@ class ImgProcessorNode:
         self.template = None
         self.w = 0
         self.h = 0
+        self.object_position = ObjectPosition()
 
     def process_image(self, data):
         if not self.initialized:
@@ -124,38 +130,42 @@ class ImgProcessorNode:
 
     def tracker_init(self, first_frame):
         # Createtracker
-        # === Convert to HSV and create mask for red ===
-        hsv = cv2.cvtColor(first_frame, cv2.COLOR_BGR2HSV)
+        tracker = cv2.TrackerCSRT_create()  # or TrackerKCF_create(), etc.
 
-        # Red color range (can tweak for lighting)
-        lower_red1 = np.array([0, 150, 150])
-        upper_red1 = np.array([5, 255, 255])
-        lower_red2 = np.array([170, 150, 150])
-        upper_red2 = np.array([180, 255, 255])
-        mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
-        mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
-        mask = cv2.bitwise_or(mask1, mask2)
-        # Find contours and pick largest red object
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            print("No red object found.")
-            return;
+        # Wait for the first frame
+        first_frame = get_next_frame()  # your own function to get the first frame
 
-        # Assume the largest red object is the target
-        contour = max(contours, key=cv2.contourArea)
-        x, y, self.w, self.h = cv2.boundingRect(contour)
-        self.template = first_frame[y:y+self.h, x:x+self.w]
+        # Define initial bounding box (e.g., manually or from detection)
+        bbox = cv2.selectROI("Frame", first_frame, fromCenter=False, showCrosshair=True)
+        cv2.destroyWindow("Frame")
+
+        # Initialize the tracker with the first frame and bounding box
+        tracker.init(first_frame, bbox)
         self.tracker_is_init = True
         rospy.loginfo("Tracker initialized.")
         return
 
     def track_image(self, frame):
-        if frame is not None:
-            result = cv2.matchTemplate(frame, self.template, cv2.TM_CCOEFF_NORMED)
-            _, _, _, max_loc = cv2.minMaxLoc(result)
-            top_left = max_loc
-            bottom_right = (top_left[0] + self.w, top_left[1] + self.h)
-            cv2.rectangle(frame, top_left, bottom_right, (0, 255, 0), 2)
+        if frame is None:
+        break  # Stop if no frame is received
+
+        # Update tracker
+        success, bbox = tracker.update(frame)
+
+        # Draw bounding box
+        if success:
+            (x, y, w, h) = [int(v) for v in bbox]
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            object_position = ObjectPosition()
+            object_position.x=x
+            object_position.y=y
+            object_position.w=w
+            object_position.h=h
+            object_position.image_width = frame.shape[1]
+            self.pub_position.publish(self.object_position)
+        else:
+            cv2.putText(frame, "Tracking failure", (50, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
  
         return frame
 
