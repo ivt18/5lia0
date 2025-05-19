@@ -1,2 +1,0 @@
-bool direction_left
-bool direction_right

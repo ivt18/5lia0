@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
-import rospy
 import time
 
-from msg import MovementRequest
+import numpy as np
+import rospy
+from controller_package.msg import MovementRequest
 
 
 class ControllerNode:
@@ -13,37 +14,31 @@ class ControllerNode:
         rospy.loginfo("Initializing controller node...")
         rospy.init_node(self.node_name, anonymous=True)
 
-        # Construct publishers
+        # Construct publisher
         self.publisher = rospy.Publisher(
-            "/motors",
+            "/motor_driver/commands",
             MovementRequest,
-            #Change buff size and queue size accordingly
             queue_size=10,
         )
 
-        self.sendSequence = 0
-
         self.initialized = True
+
         rospy.loginfo("Controller node initialized!")
 
         while True:
-            # action = input("desired action: ")
-            # distance = input("distance: ")
-            # unit = input("unit: ")
-
-            # print(action, distance, unit)
+            request_type = int(input("request type: "))
+            value = float(input("value: "))
 
             msg = MovementRequest()
 
-            msg.left_wheel = int(input("left wheel speed: "))
-            self.right_wheel = int(input("right wheel speed: "))
+            msg.request_type = request_type
+            msg.value = value
             self.publisher.publish(msg)
-            rospy.loginfo("Sent request: left_wheel = %s, right_wheel = %s", msg.left_wheel, msg.right_wheel)
-
+        
 
 if __name__ == "__main__":
     try:
-        controller_node = Node(node_name = "controller_node")
+        controller_node = ControllerNode("controller_node")
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

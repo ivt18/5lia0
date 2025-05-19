@@ -1,2 +1,2 @@
-int32 left_wheel
-int32 right_wheel
+uint8 request_type
+float32 value

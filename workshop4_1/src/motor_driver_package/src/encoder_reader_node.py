@@ -3,9 +3,9 @@
 import numpy as np
 import rospy
 
-from config.config import get_wheel_encoder_config
-from .encoderDriver import WheelEncoderDriver, WheelDirection
-from msg import EncoderData, PIDData
+from config import get_wheel_encoder_config
+from encoderDriver import WheelEncoderDriver, WheelDirection
+from motor_driver_package.msg import EncoderData, MotorSpeedRequest
 
 
 class EncoderReaderNode:
@@ -19,7 +19,7 @@ class EncoderReaderNode:
         # Construct subscriber
         self.motors_topic = rospy.Subscriber(
             "/motor_driver/motors",
-            PIDData,
+            MotorSpeedRequest,
             self.read_motors,
             buff_size=1000000,
             queue_size=1,
@@ -44,15 +44,15 @@ class EncoderReaderNode:
 
         self.initialized = True
         rospy.loginfo("{node} initialized".format(node=node_name))
-        self.timer = rospy.Timer(rospy.Duration(1.0), self.publish)
+        self.timer = rospy.Timer(rospy.Duration(0.05), self.publish)
     
     def read_motors(self, data):
         if not self.initialized:
             return
         
         # update wheel direction (moving forward/reverse)
-        direction_left = WheelDirection.FORWARD if data.direction_left.data else WheelDirection.REVERSE
-        direction_right = WheelDirection.FORWARD if data.direction_right.data else WheelDirection.REVERSE
+        direction_left = WheelDirection.FORWARD if data.speed_left_wheel > 0 else WheelDirection.REVERSE
+        direction_right = WheelDirection.FORWARD if data.speed_right_wheel > 0 else WheelDirection.REVERSE
 
         self.driver_left.set_direction(direction_left)
         self.driver_right.set_direction(direction_right)
@@ -68,33 +68,33 @@ class EncoderReaderNode:
 
         # compute tick delta left wheel
         ticks_left = self.driver_left._ticks
-        d_left = self.delta_phi(ticks_left)
-        msg.delta_left.data = d_left
+        d_left = self.delta_phi(ticks_left, 0)
+        msg.delta_left = d_left
 
         # compute tick delta right wheel
         ticks_right = self.driver_right._ticks
-        d_right = self.delta_phi(ticks_right)
-        msg.delta_right.data = d_right
+        d_right = self.delta_phi(ticks_right, 1)
+        msg.delta_right = d_right
 
         # publish message
         self.publisher.publish(msg)
-        rospy.loginfo("Published encoder data [{delta_left} {delta_right}]".format(delta_left=d_left, delta_right=d_right))
+         #rospy.loginfo("Published encoder data [{delta_left} {delta_right}]".format(delta_left=d_left, delta_right=d_right))
 
         # update ticks
         self.ticks = (ticks_left, ticks_right)
 
-    def delta_phi(self, ticks):
+    def delta_phi(self, ticks, direction):
         """
         Args:
             ticks: Current tick count from the encoders.
-            prev_ticks: Previous tick count from the encoders.
+            direction: 1 right; 0 left
         Return:
             dphi: Rotation of the wheel in radians.
         """
 
-        delta_ticks = ticks - self.ticks
+        delta_ticks = ticks - self.ticks[direction]
 
-        delta_rot = delta_ticks / self.resolution
+        delta_rot = float(delta_ticks) / float(self.resolution)
         dphi = delta_rot * 2 * np.pi
 
         return dphi

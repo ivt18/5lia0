@@ -8,8 +8,24 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+# Add message files
+add_message_files(
+  FILES
+  EncoderData.msg
+  Position.msg
+  MotorSpeedRequest.msg
+)
+
+# Generate messages
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 # Declare a catkin package
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs
+)
 
 # Include directories
 include_directories(
@@ -24,6 +40,7 @@ install(DIRECTORY launch/
 catkin_install_python(PROGRAMS
   src/encoder_reader_node.py
   src/motor_driver_node.py
-  src/pose_estimator_node.py
+  src/position_estimator_node.py
+  src/receiver_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
