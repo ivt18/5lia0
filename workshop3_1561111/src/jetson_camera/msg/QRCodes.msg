@@ -1,2 +1,2 @@
 bool found
-string data
+str data
