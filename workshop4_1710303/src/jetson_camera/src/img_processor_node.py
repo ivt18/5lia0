@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
-from jetson_camera.msg import ObjectPosition, ProcessedImages
+from jetson_camera_tracker.msg import ProcessedImages, ObjectPosition
 from sensor_msgs.msg import CompressedImage
 
 chessboard_size = (7, 5)
@@ -189,8 +189,8 @@ class ImgProcessorNode:
 
         # Find the chessboard corners
         ret, corners = cv2.findChessboardCorners(gray_img, chessboard_size, None)
-        # rospy.loginfo("Found chessboard? {}".format(ret))
-
+        rospy.loginfo("Found chessboard? {}".format(ret))
+        cv2.imshow("test", gray_img)
         # If found, add object points, image points (after refining them)
         if ret == True:
             self.objpoints.append(self.objp)

@@ -6,7 +6,7 @@ import time
 import numpy as np
 import rospy
 from controller_package.msg import MovementRequest
-from jetson_camera.msg import ObjectPosition
+from jetson_camera_tracker.msg import ObjectPosition
 
 
 class ControllerNode:
@@ -23,7 +23,7 @@ class ControllerNode:
             queue_size=10,
         )
 
-        self.subscriber = rospy.subscriber(
+        self.subscriber = rospy.Subscriber(
             "/camera/object_position", ObjectPosition, self.track_object, queue_size=1
         )
 
@@ -31,15 +31,8 @@ class ControllerNode:
 
         rospy.loginfo("Controller node initialized!")
 
-        while True:
-            request_type = int(input("request type: "))
-            value = float(input("value: "))
 
-            msg = MovementRequest()
 
-            msg.request_type = request_type
-            msg.value = value
-            self.publisher.publish(msg)
 
     def track_object(self, object_position):
         kp = 0.1
