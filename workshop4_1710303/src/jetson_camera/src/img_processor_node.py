@@ -4,11 +4,11 @@ import cv2
 import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
+from jetson_camera.msg import ObjectPosition, ProcessedImages
 from sensor_msgs.msg import CompressedImage
 
-from jetson_camera.msg import ObjectPosition, ProcessedImages
-
 chessboard_size = (7, 5)
+
 
 class ImgProcessorNode:
     def __init__(self):
@@ -21,21 +21,17 @@ class ImgProcessorNode:
             "/camera/image_raw",
             CompressedImage,
             self.process_image,
-            buff_size = 2**24,
-            queue_size = 1
+            buff_size=2**24,
+            queue_size=1,
         )
 
         # Construct publisher
         self.pub_image = rospy.Publisher(
-            'camera/image_processed',
-            ProcessedImages,
-            queue_size = 1
+            "camera/image_processed", ProcessedImages, queue_size=1
         )
 
         self.pub_position = rospy.Publisher(
-            'camera/object_position',
-            ObjectPosition,
-            queue_size = 1
+            "camera/object_position", ObjectPosition, queue_size=1
         )
 
         self.first_image_received = False
@@ -43,11 +39,17 @@ class ImgProcessorNode:
         rospy.loginfo("ImgProcessing node initialized")
 
         # checkerboard
-        self.currcalframes = 0	# number of frames already processed to calibrate the camera
-        self.N_CAL_FRAMES = 25	# number of frames we want to use to calibrate the camera
+        self.currcalframes = (
+            0  # number of frames already processed to calibrate the camera
+        )
+        self.N_CAL_FRAMES = (
+            25  # number of frames we want to use to calibrate the camera
+        )
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ...., (7,5,0)
-        self.objp = np.zeros((chessboard_size[0]*chessboard_size[1], 3), np.float32)
-        self.objp[:,:2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
+        self.objp = np.zeros((chessboard_size[0] * chessboard_size[1], 3), np.float32)
+        self.objp[:, :2] = np.mgrid[
+            0 : chessboard_size[0], 0 : chessboard_size[1]
+        ].T.reshape(-1, 2)
         self.objpoints = []
         self.imgpoints = []
         # calibration
@@ -73,7 +75,9 @@ class ImgProcessorNode:
             rospy.loginfo(cv2.__version__)
         try:
             # Decode image without CvBridge
-            raw_image = cv2.imdecode(np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR)
+            raw_image = cv2.imdecode(
+                np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR
+            )
             # rospy.loginfo("Publisher - ImgProcessor delay: {}".format((rospy.Time.now() - data.header.stamp).to_sec()))
 
             if not self.calibrated:
@@ -83,23 +87,29 @@ class ImgProcessorNode:
 
                 if self.currcalframes < self.N_CAL_FRAMES:
                     # record N_CAL_FRAMES of the checkerboard to calibrate
-                    rospy.loginfo("Recording checkerboard frame {} / {}".format(self.currcalframes + 1, self.N_CAL_FRAMES))
+                    rospy.loginfo(
+                        "Recording checkerboard frame {} / {}".format(
+                            self.currcalframes + 1, self.N_CAL_FRAMES
+                        )
+                    )
                     self.gray_img = self.find_chessboard(raw_image)
                     rospy.Rate(2).sleep()
                 else:
                     rospy.loginfo("Calibrating...")
                     self.calibrate(self.gray_img)
                     self.calibrated = True
-		    cv2.destroyAllWindows()
+                    # 		    cv2.destroyAllWindows()
                     rospy.loginfo("Calibration complete")
                 return
             # once calibrated, we can begin undistorting and forwarding images
             undistorted_image = self.undistort(raw_image)
-            
+
             if self.tracker_is_init:
                 tracked_image = self.track_image(undistorted_image)
             else:
-                self.tracker_init(cv2.imdecode(np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR))
+                self.tracker_init(
+                    cv2.imdecode(np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR)
+                )
                 tracked_image = undistorted_image
 
             # publish images
@@ -112,7 +122,9 @@ class ImgProcessorNode:
 
             # Convert the OpenCV images to  ROS CompressedImage
             success_raw, encoded_image_raw = cv2.imencode(".jpg", raw_image)
-            success_undistorted, encoded_image_undistorted = cv2.imencode(".jpg", tracked_image)
+            success_undistorted, encoded_image_undistorted = cv2.imencode(
+                ".jpg", tracked_image
+            )
 
             if success_raw and success_undistorted:
                 compressed_image_raw.data = encoded_image_raw.tobytes()
@@ -124,49 +136,52 @@ class ImgProcessorNode:
                 self.pub_image.publish(msg)
                 rospy.loginfo("Sent processed image")
 
-
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
 
     def tracker_init(self, first_frame):
         # Createtracker
-        tracker = cv2.TrackerCSRT_create()  # or TrackerKCF_create(), etc.
-
-        # Wait for the first frame
-        first_frame = get_next_frame()  # your own function to get the first frame
+        self.tracker = cv2.TrackerCSRT_create()  # or TrackerKCF_create(), etc.
 
         # Define initial bounding box (e.g., manually or from detection)
         bbox = cv2.selectROI("Frame", first_frame, fromCenter=False, showCrosshair=True)
         cv2.destroyWindow("Frame")
 
         # Initialize the tracker with the first frame and bounding box
-        tracker.init(first_frame, bbox)
+        self.tracker.init(first_frame, bbox)
         self.tracker_is_init = True
         rospy.loginfo("Tracker initialized.")
         return
 
     def track_image(self, frame):
         if frame is None:
-        break  # Stop if no frame is received
+            return  # Stop if no frame is received
 
         # Update tracker
-        success, bbox = tracker.update(frame)
+        success, bbox = self.tracker.update(frame)
 
         # Draw bounding box
         if success:
             (x, y, w, h) = [int(v) for v in bbox]
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             object_position = ObjectPosition()
-            object_position.x=x
-            object_position.y=y
-            object_position.w=w
-            object_position.h=h
+            object_position.x = x
+            object_position.y = y
+            object_position.w = w
+            object_position.h = h
             object_position.image_width = frame.shape[1]
             self.pub_position.publish(self.object_position)
         else:
-            cv2.putText(frame, "Tracking failure", (50, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
- 
+            cv2.putText(
+                frame,
+                "Tracking failure",
+                (50, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.75,
+                (0, 0, 255),
+                2,
+            )
+
         return frame
 
     def find_chessboard(self, raw_image):
@@ -189,29 +204,42 @@ class ImgProcessorNode:
 
             # Draw and display the corners
             cv2.drawChessboardCorners(gray_img, chessboard_size, corners2, ret)
-            cv2.imshow('calibration', gray_img)
+            cv2.imshow("calibration", gray_img)
             cv2.waitKey(1)
         return gray_img
 
     def calibrate(self, gray_image):
-        ret, self.camera_matrix, self.distortion_coeff, rotation_vecs, translation_vecs = cv2.calibrateCamera(self.objpoints, self.imgpoints, gray_image.shape[::-1], None, None)
+        (
+            ret,
+            self.camera_matrix,
+            self.distortion_coeff,
+            rotation_vecs,
+            translation_vecs,
+        ) = cv2.calibrateCamera(
+            self.objpoints, self.imgpoints, gray_image.shape[::-1], None, None
+        )
 
     def undistort(self, image):
         h, w = image.shape[:2]
-        new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.distortion_coeff, (w, h), 1, (w, h))
+        new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+            self.camera_matrix, self.distortion_coeff, (w, h), 1, (w, h)
+        )
 
         # undistort image
-        dst = cv2.undistort(image, self.camera_matrix, self.distortion_coeff, None, new_camera_matrix)
+        dst = cv2.undistort(
+            image, self.camera_matrix, self.distortion_coeff, None, new_camera_matrix
+        )
 
         # crop image
         x, y, w, h = roi
-        dst = dst[y:y+h, x:x+w]
+        dst = dst[y : y + h, x : x + w]
 
         return dst
 
+
 if __name__ == "__main__":
     # Initialize the node
-    rospy.init_node('processing_node', anonymous=True)
+    rospy.init_node("processing_node", anonymous=True)
     img_processor_node = ImgProcessorNode()
     try:
         rospy.spin()

@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
 
+import math
 import time
 
 import numpy as np
 import rospy
-
 from controller_package.msg import MovementRequest
 from jetson_camera.msg import ObjectPosition
 
@@ -24,10 +24,7 @@ class ControllerNode:
         )
 
         self.subscriber = rospy.subscriber(
-            "/camera/object_position",
-            ObjectPosition,
-            self.track_object,
-            queue_size = 1
+            "/camera/object_position", ObjectPosition, self.track_object, queue_size=1
         )
 
         self.initialized = True
@@ -43,31 +40,29 @@ class ControllerNode:
             msg.request_type = request_type
             msg.value = value
             self.publisher.publish(msg)
-        
 
-    track_object(self, object_position):
+    def track_object(self, object_position):
         kp = 0.1
-        center_x = object_position.image_width/2
-        object_x = object_position.x + object_position.width/2
+        center_x = object_position.image_width / 2
+        object_x = object_position.x + object_position.width / 2
         error_x = object_x - center_x
-        
+
         if error_x < 30:
             msg_move = MovementRequest()
             msg_move.request_type = 0
             msg_move.value = 0.5
-            self.publisher.publish(msh_move)
+            self.publisher.publish(msg_move)
         else:
-        
+
             angle = kp * error_x
             angle = max(min(angle, 30), -30)
-            
+
             msg_turn = MovementRequest()
             msg_turn.request_type = 1
             msg_turn.value = 2 * math.pi * angle / 360
             self.publisher.publish(msg_turn)
         return
 
-        
 
 if __name__ == "__main__":
     try:
