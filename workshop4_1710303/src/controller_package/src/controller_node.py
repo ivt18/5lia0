@@ -35,7 +35,7 @@ class ControllerNode:
 
 
     def track_object(self, object_position):
-        kp = 0.1
+        kp = 10
         center_x = object_position.image_width / 2
         object_x = object_position.x + object_position.width / 2
         error_x = object_x - center_x

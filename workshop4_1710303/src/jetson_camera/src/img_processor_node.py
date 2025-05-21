@@ -78,6 +78,7 @@ class ImgProcessorNode:
             raw_image = cv2.imdecode(
                 np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR
             )
+            
             # rospy.loginfo("Publisher - ImgProcessor delay: {}".format((rospy.Time.now() - data.header.stamp).to_sec()))
 
             if not self.calibrated:
@@ -93,12 +94,13 @@ class ImgProcessorNode:
                         )
                     )
                     self.gray_img = self.find_chessboard(raw_image)
+                    rospy.loginfo(raw_image.shape)
                     rospy.Rate(2).sleep()
                 else:
                     rospy.loginfo("Calibrating...")
                     self.calibrate(self.gray_img)
                     self.calibrated = True
-                    # 		    cv2.destroyAllWindows()
+                    cv2.destroyAllWindows()
                     rospy.loginfo("Calibration complete")
                 return
             # once calibrated, we can begin undistorting and forwarding images
@@ -167,8 +169,8 @@ class ImgProcessorNode:
             object_position = ObjectPosition()
             object_position.x = x
             object_position.y = y
-            object_position.w = w
-            object_position.h = h
+            object_position.width = w
+            object_position.height = h
             object_position.image_width = frame.shape[1]
             self.pub_position.publish(self.object_position)
         else:
@@ -190,7 +192,6 @@ class ImgProcessorNode:
         # Find the chessboard corners
         ret, corners = cv2.findChessboardCorners(gray_img, chessboard_size, None)
         rospy.loginfo("Found chessboard? {}".format(ret))
-        cv2.imshow("test", gray_img)
         # If found, add object points, image points (after refining them)
         if ret == True:
             self.objpoints.append(self.objp)
