@@ -78,7 +78,7 @@ class EncoderReaderNode:
 
         # publish message
         self.publisher.publish(msg)
-         #rospy.loginfo("Published encoder data [{delta_left} {delta_right}]".format(delta_left=d_left, delta_right=d_right))
+        rospy.loginfo("Published encoder data [{delta_left} {delta_right}]".format(delta_left=d_left, delta_right=d_right))
 
         # update ticks
         self.ticks = (ticks_left, ticks_right)
