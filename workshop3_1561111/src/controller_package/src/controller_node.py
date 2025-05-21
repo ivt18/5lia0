@@ -48,17 +48,30 @@ class ControllerNode:
         if not self.initialized:
             return
 
-        # Process the QR code data
+        # Process the QR code data if found
         if data.found:
+
+            rospy.loginfo("QR code: %s", data.data)
+
             msg = MovementRequest()
-            msg.request_type = 1
-            msg.value = 1
+
+            if data.data == "forward":
+                msg.request_type = 1
+                msg.value = 1
+            
+            elif data.data == "reverse":
+                msg.request_type = 1
+                msg.value = -1
+
+            elif data.data == "rotate left":
+                msg.request_type = 2
+                msg.value = -1
+
+            elif data.data == "rotate right":
+                msg.request_type = 2
+                msg.value = 1
+            
             self.publisher.publish(msg)
-
-            rospy.loginfo("Found QR code: %s", data.data)
-
-            # Here you can add logic to handle the QR code data
-            # For example, you can send a command to the motors based on the QR code data
 
 
 if __name__ == "__main__":

@@ -119,7 +119,7 @@ class ReceiverNode:
         mult_right = 1
         
         if (request.request_type == datatypes.MovementRequest.MOVEMENT_REQUEST):
-            delta_req = float(data.value) / float(self.config.wheel_radius) # radians
+            delta_req = float(request.value) / float(self.config.wheel_radius) # radians
 
             if (delta_req < 0):
                 mult_left = -1
