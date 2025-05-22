@@ -122,11 +122,13 @@ if __name__ == '__main__':
     ocr_node = None
     try:
         ocr_node = OcrCompressedNode()
+        rospy.loginfo("OCR Node (CompressedImage) initialized.")
+        # while not rospy.is_shutdown():
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
     finally:
-        ocr_node.s.close()
+        # ocr_node.s.close()
         rospy.loginfo("Socket closed.")
         cv2.destroyAllWindows()
         rospy.loginfo("OpenCV windows destroyed.")
