@@ -59,7 +59,7 @@ class OcrCompressedNode:
             # rospy.loginfo(f"Text length: {text_len}")
             text_data = recvall(self.s, text_len)
             detected_text = text_data.decode('utf-8')
-            rospy.loginfo(f"Detected text: {detected_text}")
+            rospy.loginfo("Detected text: {detected_text}".format(detected_text=detected_text)) 
 
             # cv2.imshow("Raw Image", image)
             # cv2.waitKey(1)  
