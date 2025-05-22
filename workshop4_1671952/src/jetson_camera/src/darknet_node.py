@@ -100,8 +100,9 @@ class DarknetNode:
             if detections_sorted:
                 top_label, top_confidence, top_bbox = detections_sorted[0]
                 x, y, w, h = map(int, bbox)
-                delta = x - (self.net_width / 2)
-                delta_norm = 2 * delta / self.net_width
+                delta = float(x - float(self.net_width / 2))
+                delta_norm = float(2 * delta / float(self.net_width))
+                rospy.loginfo("delta_norm: {}".format(delta_norm))
                 msg = MovementRequest()
                 msg.request_type = 2
                 msg.value = 0.1 * delta_norm
