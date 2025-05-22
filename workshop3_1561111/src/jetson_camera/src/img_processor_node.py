@@ -7,7 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage
 
 from jetson_camera.msg import ProcessedImages
-from controller_package.msg import MovementRequest
+from jetson_camera.msg import QRCodes
 
 
 chessboard_size = (7, 5)
@@ -34,10 +34,10 @@ class ImgProcessorNode:
             queue_size = 1
         )
 
-        # Construct publisher to send commands to the motor driver
+        # Construct publisher to send qr codes to the controller
         self.publisher = rospy.Publisher(
-            "/motor_driver/commands",
-            MovementRequest,
+            "camera/qr_code",
+            QRCodes,
             queue_size=10,
         )
 
@@ -62,17 +62,17 @@ class ImgProcessorNode:
         self.distortion_coeff = None
         self.gray_img = None
 
-    def send_command(self, request_type, value):
+    def send_command(self, found, data):
         if not self.initialized:
             return
 
-        msg = MovementRequest()
+        msg = QRCodes()
 
-        msg.request_type = request_type
-        msg.value = value
+        msg.found = found
+        msg.data = data
         self.publisher.publish(msg)
 
-        rospy.loginfo("Sent command to motor driver: {} {}".format(request_type, value))
+        rospy.loginfo("Sent command to controller: found = {}, data = {}".format(found, data))
 
     def image_cb(self, data):
         if not self.initialized:
@@ -118,10 +118,13 @@ class ImgProcessorNode:
                 cv2.polylines(undistorted_image, [points.astype(int)], isClosed=True, color=(0, 255, 0), thickness=2)
 
                 # Drive forward if QR code detected
-                self.send_command(1, 0.5)
+                self.send_command(True, retval)
             else:
                 # Display if no QR code was detected
                 cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+                # Send command that no QR code was found
+                self.send_command(False, "")
 
             # publish images
             msg = ProcessedImages()

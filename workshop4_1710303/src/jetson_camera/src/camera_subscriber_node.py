@@ -5,7 +5,7 @@ import rospy
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage
-from jetson_camera.msg import ProcessedImages
+from jetson_camera_tracker.msg import ProcessedImages
 
 class CameraSubscriberNode:
     def __init__(self):

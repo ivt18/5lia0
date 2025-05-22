@@ -1,0 +1,2 @@
+bool found
+str data
