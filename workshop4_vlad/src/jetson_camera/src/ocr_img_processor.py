@@ -31,8 +31,12 @@ class OcrCompressedNode:
             queue_size=1
         )
 
-        threading.Thread(target=self.send_images, daemon=True).start()
-        threading.Thread(target=self.receive_text, daemon=True).start()
+        send_t = threading.Thread(target=self.send_images)
+        rec_t = threading.Thread(target=self.receive_text)
+        send_t.daemon = True
+        rec_t.daemon = True
+        send_t.start()
+        rec_t.start()
         rospy.on_shutdown(self.shutdown_hook)
         # TODO: uncomment this when done
         rospy.spin()
