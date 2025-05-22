@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="jetson_camera" type="img_processor_node.py" name="img_processor_node_vlad" output="screen"/>
+</launch>
