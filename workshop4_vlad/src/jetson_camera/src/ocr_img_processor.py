@@ -37,6 +37,7 @@ class OcrCompressedNode:
         rec_t.daemon = True
         send_t.start()
         rec_t.start()
+
         rospy.on_shutdown(self.shutdown_hook)
         # TODO: uncomment this when done
         rospy.spin()
@@ -63,7 +64,7 @@ class OcrCompressedNode:
             length = struct.pack('>I', len(image_data))
             self.s.sendall(length + image_data)
         except Exception as e:
-            rospy.logerr("Socket error: {e}".format(e))
+            rospy.loginfo("Socket error: {e}".format(e))
 
 
     def image_cb(self, msg):
@@ -109,7 +110,7 @@ class OcrCompressedNode:
             text_len = struct.unpack('>I', raw_len)[0]
             text_data = self.recvall(text_len)
             detected_text = text_data.decode('utf-8')
-            rospy.logger("detected text {}".format(detected_text))
+            rospy.loginfo("detected text {}".format(detected_text))
             # self.pub_text.publish(detected_text)
 
         print("reeive text cleanup")
