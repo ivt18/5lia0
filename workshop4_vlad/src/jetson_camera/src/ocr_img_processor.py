@@ -8,17 +8,11 @@ from jetson_camera.msg import ProcessedImages
 import os
 import socket
 import struct
+import Queue
+import threading
 
 ocr_server_ip = "192.168.8.169"
 
-def recvall(conn, length):
-    data = b''
-    while len(data) < length:
-        more = conn.recv(length - len(data))
-        if not more:
-            raise EOFError("Socket closed before receiving expected data")
-        data += more
-    return data
 class OcrCompressedNode:
     def __init__(self):
         rospy.init_node('ocr_node', anonymous=True)
@@ -27,6 +21,8 @@ class OcrCompressedNode:
         self.s.connect((ocr_server_ip, 9999)) 
         rospy.loginfo("Connected to socket server.")
         
+        self.image_queue = Queue.Queue()
+        self.response_queue = Queue.Queue()
         self.sub_image = rospy.Subscriber(
             "/camera/image_processed_vlad",
             ProcessedImages,
@@ -34,8 +30,27 @@ class OcrCompressedNode:
             buff_size=2**25,
             queue_size=1
         )
+
+        threading.Thread(target=self.send_images, daemon=True).start()
+        threading.Thread(target=self.receive_text, daemon=True).start()
+        rospy.on_shutdown(self.shutdown_hook)
         # TODO: uncomment this when done
-        rospy.spin()
+    
+    def shutdown_hook(self):
+        rospy.loginfo("Shutting down OCR node.")
+        try:
+            self.s.close()
+        except:
+            pass
+
+    def send_images(self):
+        print("sending images func")
+        while not rospy.is_shutdown():
+            img = self.image_queue.get()
+            img_len = struct.pack('>I', len(img))
+            self.s.sendall(img_len + img)
+
+        print("sending images func cleanup")
 
     def send_image_over_socket(self, image_data):
         # rospy.loginfo("Sending image over socket...")
@@ -45,37 +60,69 @@ class OcrCompressedNode:
         except Exception as e:
             rospy.logerr("Socket error: {e}".format(e))
 
+
     def image_cb(self, msg):
-        # rospy.Rate(10).sleep()  
+        # Convert image to OpenCV format
+        # np_arr = np.fromstring(msg.image.data, np.uint8)
+        # img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         image_data = msg.undistorted_image.data
-        rospy.loginfo("Received image data of length: {}".format(len(image_data)))
-        try:
-            np_arr = np.frombuffer(msg.raw_image.data, np.uint8)
-            image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        self.image_queue.put(image_data)
 
-            # self.extract_text(cv2.imdecode(np.frombuffer(msg.undistorted_image.data, np.uint8), cv2.IMREAD_COLOR))
-            self.send_image_over_socket(image_data)
-            raw_len = recvall(self.s, 4)
+    # def image_cb(self, msg):
+    #     # rospy.Rate(10).sleep()  
+    #     image_data = msg.undistorted_image.data
+    #     rospy.loginfo("Received image data of length: {}".format(len(image_data)))
+    #     try:
+    #         np_arr = np.frombuffer(msg.raw_image.data, np.uint8)
+    #         image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    #         # self.extract_text(cv2.imdecode(np.frombuffer(msg.undistorted_image.data, np.uint8), cv2.IMREAD_COLOR))
+    #         self.send_image_over_socket(image_data)
+    #         raw_len = recvall(self.s, 4)
+    #         text_len = struct.unpack('>I', raw_len)[0]
+    #         # rospy.loginfo(f"Text length: {text_len}")
+    #         text_data = recvall(self.s, text_len)
+    #         detected_text = text_data.decode('utf-8')
+    #         rospy.loginfo("Detected text: {detected_text}".format(detected_text=detected_text)) 
+
+    #         # cv2.imshow("Raw Image", image)
+    #         # cv2.waitKey(1)  
+
+    #         # text = pytesseract.image_to_string(image)
+
+    #         # rospy.loginfo(f"OCR Text: {text.strip()}")
+
+        # except Exception as e:
+        #     rospy.logerr("Error in image callback: {}".format(e))
+            
+    def receive_text(self):
+        print("in receive text")
+        while not rospy.is_shutdown():
+            raw_len = self.recvall(4)
+            if not raw_len:
+                continue
             text_len = struct.unpack('>I', raw_len)[0]
-            # rospy.loginfo(f"Text length: {text_len}")
-            text_data = recvall(self.s, text_len)
+            text_data = self.recvall(text_len)
             detected_text = text_data.decode('utf-8')
-            rospy.loginfo("Detected text: {detected_text}".format(detected_text=detected_text)) 
+            rospy.logger("detected text {}".format(detected_text))
+            # self.pub_text.publish(detected_text)
 
-            # cv2.imshow("Raw Image", image)
-            # cv2.waitKey(1)  
+        print("reeive text cleanup")
 
-            # text = pytesseract.image_to_string(image)
-
-            # rospy.loginfo(f"OCR Text: {text.strip()}")
-
-        except Exception as e:
-            rospy.logerr("Error in image callback: {}".format(e))
+    def recvall(self, length):
+        data = b''
+        while len(data) < length:
+            more = self.s.recv(length - len(data))
+            if not more:
+                raise EOFError("Socket closed before receiving expected data")
+            data += more
+        return data
 
 if __name__ == '__main__':
     ocr_node = None
     try:
         ocr_node = OcrCompressedNode()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
     finally:

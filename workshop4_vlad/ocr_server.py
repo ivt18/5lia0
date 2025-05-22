@@ -61,10 +61,10 @@ if __name__ == "__main__":
                 # conn.sendall(text_len + encoded_text)
                 
                 for bbox, text, conf in results:
-                    encoded_text = text.encode('utf-8')
-                    text_len = struct.pack('>I', len(encoded_text))
-                    conn.sendall(text_len + encoded_text)
-                    
+                    # encoded_text = text.encode('utf-8')
+                    # text_len = struct.pack('>I', len(encoded_text))
+                    # conn.sendall(text_len + encoded_text)
+
                     if conf > 0.5:
                         # print(f"[OCR {round(conf,2)}] {text}")
                         top_left = tuple(map(int, bbox[0]))
