@@ -100,12 +100,11 @@ class DarknetNode:
             if detections_sorted:
                 top_label, top_confidence, top_bbox = detections_sorted[0]
                 x, y, w, h = map(int, bbox)
+                delta = x - (self.net_width / 2)
+                delta_norm = 2 * delta / self.net_width
                 msg = MovementRequest()
                 msg.request_type = 2
-                if (x < self.net_width / 2):
-                    msg.value = -0.1
-                if (x > self.net_width / 2):
-                    msg.value = 0.1
+                msg.value = 0.1 * delta_norm
                 self.pub_commands.publish(msg)
 
         except CvBridgeError as err:
