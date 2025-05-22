@@ -34,15 +34,15 @@ class ControllerNode:
 
         rospy.loginfo("Controller node initialized!")
 
-        while True:
-            request_type = int(input("request type: "))
-            value = float(input("value: "))
+        # while True:
+        #     request_type = int(input("request type: "))
+        #     value = float(input("value: "))
 
-            msg = MovementRequest()
+        #     msg = MovementRequest()
 
-            msg.request_type = request_type
-            msg.value = value
-            self.publisher.publish(msg)
+        #     msg.request_type = request_type
+        #     msg.value = value
+        #     self.publisher.publish(msg)
 
     def qr_code_cb(self, data):
         if not self.initialized:
