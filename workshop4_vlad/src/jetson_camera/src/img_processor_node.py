@@ -51,7 +51,6 @@ class ImgProcessorNode:
         self.distortion_coeff = None
         self.gray_img = None
 
-        self.timer = rospy.Rate(10)
 
     def image_cb(self, data):
         if not self.initialized:
@@ -113,7 +112,6 @@ class ImgProcessorNode:
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
         
-        self.timer.sleep()
 
     def find_chessboard(self, raw_image):
         gray_img = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)

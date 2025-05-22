@@ -48,6 +48,7 @@ class OcrCompressedNode:
     def image_cb(self, msg):
         # rospy.Rate(10).sleep()  
         image_data = msg.undistorted_image.data
+        rospy.loginfo("Received image data of length: {}".format(len(image_data)))
         try:
             np_arr = np.frombuffer(msg.raw_image.data, np.uint8)
             image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
