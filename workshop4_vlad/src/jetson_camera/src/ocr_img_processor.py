@@ -35,6 +35,7 @@ class OcrCompressedNode:
         threading.Thread(target=self.receive_text, daemon=True).start()
         rospy.on_shutdown(self.shutdown_hook)
         # TODO: uncomment this when done
+        rospy.spin()
     
     def shutdown_hook(self):
         rospy.loginfo("Shutting down OCR node.")
@@ -124,7 +125,6 @@ if __name__ == '__main__':
         ocr_node = OcrCompressedNode()
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
         # while not rospy.is_shutdown():
-        rospy.spin()
     except rospy.ROSInterruptException:
         pass
     finally:
