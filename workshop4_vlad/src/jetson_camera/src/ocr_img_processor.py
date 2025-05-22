@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import rospy
 from sensor_msgs.msg import CompressedImage
@@ -10,6 +10,15 @@ import socket
 import struct
 
 ocr_server_ip = "192.168.8.169"
+
+def recvall(conn, length):
+    data = b''
+    while len(data) < length:
+        more = conn.recv(length - len(data))
+        if not more:
+            raise EOFError("Socket closed before receiving expected data")
+        data += more
+    return data
 class OcrCompressedNode:
     def __init__(self):
         rospy.init_node('ocr_node', anonymous=True)
@@ -19,7 +28,7 @@ class OcrCompressedNode:
         rospy.loginfo("Connected to socket server.")
         
         self.sub_image = rospy.Subscriber(
-            "/camera/image_processed",
+            "/camera/image_processed_vlad",
             ProcessedImages,
             self.image_cb,
             buff_size=2**25,
@@ -45,15 +54,22 @@ class OcrCompressedNode:
 
             # self.extract_text(cv2.imdecode(np.frombuffer(msg.undistorted_image.data, np.uint8), cv2.IMREAD_COLOR))
             self.send_image_over_socket(image_data)
-            cv2.imshow("Raw Image", image)
-            cv2.waitKey(1)  
+            raw_len = recvall(self.s, 4)
+            text_len = struct.unpack('>I', raw_len)[0]
+            # rospy.loginfo(f"Text length: {text_len}")
+            text_data = recvall(self.s, text_len)
+            detected_text = text_data.decode('utf-8')
+            rospy.loginfo(f"Detected text: {detected_text}")
+
+            # cv2.imshow("Raw Image", image)
+            # cv2.waitKey(1)  
 
             # text = pytesseract.image_to_string(image)
 
             # rospy.loginfo(f"OCR Text: {text.strip()}")
 
         except Exception as e:
-            rospy.logerr("Error in image callback: {e}".format(e))
+            rospy.logerr(f"Error in image callback: {e}")
 
 if __name__ == '__main__':
     ocr_node = None

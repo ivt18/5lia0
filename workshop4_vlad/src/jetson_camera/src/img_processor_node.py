@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import cv2
 import rospy
@@ -28,7 +28,7 @@ class ImgProcessorNode:
 
         # Construct publisher
         self.pub_image = rospy.Publisher(
-            'camera/image_processed',
+            'camera/image_processed_vlad',
             ProcessedImages,
             queue_size = 1
         )
@@ -50,6 +50,8 @@ class ImgProcessorNode:
         self.camera_matrix = None
         self.distortion_coeff = None
         self.gray_img = None
+
+        self.timer = rospy.Rate(10)
 
     def image_cb(self, data):
         if not self.initialized:
@@ -110,6 +112,8 @@ class ImgProcessorNode:
 
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
+        
+        self.timer.sleep()
 
     def find_chessboard(self, raw_image):
         gray_img = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
@@ -154,7 +158,7 @@ class ImgProcessorNode:
 
 if __name__ == "__main__":
     # Initialize the node
-    rospy.init_node('processing_node', anonymous=True)
+    rospy.init_node('img_processor_node_vlad', anonymous=True)
     img_processor_node = ImgProcessorNode()
     try:
         rospy.spin()

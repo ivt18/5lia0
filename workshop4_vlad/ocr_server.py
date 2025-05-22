@@ -6,8 +6,6 @@ import struct
 
 reader = easyocr.Reader(['en'], gpu=True)
 
-
-
 # fourcc = cv2.VideoWriter_fourcc(*'XVID')
 # video = cv2.VideoWriter(
 #     "./video_undistored.avi",
@@ -33,6 +31,7 @@ if __name__ == "__main__":
         print("[OCR Server] Waiting for connection...")
         conn, addr = server.accept()
         print(f"[OCR Server] Connected from {addr}")
+        print(f"{conn.getsockname()}, {conn.getpeername()}")
 
         try:
             while True:
@@ -53,7 +52,19 @@ if __name__ == "__main__":
 
                 # Run EasyOCR
                 results = reader.readtext(image)
+                # print(results)
+
+
+                # Send back the result
+                # encoded_text = .encode('utf-8')
+                # text_len = struct.pack('>I', len(encoded_text))
+                # conn.sendall(text_len + encoded_text)
+                
                 for bbox, text, conf in results:
+                    encoded_text = text.encode('utf-8')
+                    text_len = struct.pack('>I', len(encoded_text))
+                    conn.sendall(text_len + encoded_text)
+                    
                     if conf > 0.5:
                         # print(f"[OCR {round(conf,2)}] {text}")
                         top_left = tuple(map(int, bbox[0]))
