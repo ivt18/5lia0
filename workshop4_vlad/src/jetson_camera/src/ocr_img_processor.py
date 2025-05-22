@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 import rospy
 from sensor_msgs.msg import CompressedImage
@@ -69,7 +69,7 @@ class OcrCompressedNode:
             # rospy.loginfo(f"OCR Text: {text.strip()}")
 
         except Exception as e:
-            rospy.logerr(f"Error in image callback: {e}")
+            rospy.logerr("Error in image callback: {}".format(e))
 
 if __name__ == '__main__':
     ocr_node = None
