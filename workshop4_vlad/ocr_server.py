@@ -1,89 +1,123 @@
+#!/usr/bin/env python3
 import socket
+import struct
+import threading
 import cv2
 import numpy as np
 import easyocr
-import struct
+from queue import Queue, Full
 
-reader = easyocr.Reader(['en'], gpu=True)
+OCR_QUEUE_MAX = 10
+NUM_WORKERS = 1
 
-# fourcc = cv2.VideoWriter_fourcc(*'XVID')
-# video = cv2.VideoWriter(
-#     "./video_undistored.avi",
-#     fourcc,
-#     15.0,
-#     (640, 480)
-# )
-        
 def recvall(conn, length):
     data = b''
     while len(data) < length:
-        more = conn.recv(length - len(data))
-        if not more:
-            raise EOFError("Socket closed before receiving expected data")
-        data += more
+        chunk = conn.recv(length - len(data))
+        if not chunk:
+            raise EOFError("Socket closed early")
+        data += chunk
     return data
 
-if __name__ == "__main__":
-    
-    with socket.socket() as server:
-        server.bind(('0.0.0.0', 9999))
-        server.listen(1)
-        print("[OCR Server] Waiting for connection...")
-        conn, addr = server.accept()
-        print(f"[OCR Server] Connected from {addr}")
-        print(f"{conn.getsockname()}, {conn.getpeername()}")
+class OcrServer:
+    def __init__(self, host='', port=9999):
+        self.a = 0
+        self.b = 0
+        self.reader = easyocr.Reader(['en'], gpu=True)
+        self.sock = socket.socket()
+        self.sock.bind((host, port))
+        self.sock.listen(1)
+        print(f"[OCR] Listening on {host or '0.0.0.0'}:{port}")
 
-        try:
-            while True:
+        self.conn, addr = self.sock.accept()
+        print(f"[OCR] Client connected from {addr}")
 
-                raw_len = recvall(conn, 4)
+        # Bounded queue to smooth out bursts
+        self.queue = Queue(maxsize=OCR_QUEUE_MAX)
+        self.ocr_queue = Queue(maxsize=OCR_QUEUE_MAX)
+
+        # Thread: receive & enqueue
+        t_recv = threading.Thread(target=self.recv_loop, daemon=True)
+        t_recv.start()
+
+        # Worker threads: dequeue → OCR → send
+        for _ in range(NUM_WORKERS):
+            t = threading.Thread(target=self.ocr_worker, daemon=True)
+            t.start()
+
+        # Keep main alive
+        # t_recv.join()
+
+    def recv_loop(self):
+        while True:
+            try:
+                raw_len = recvall(self.conn, 4)
                 img_len = struct.unpack('>I', raw_len)[0]
-
-                # Read image data
-                img_data = recvall(conn, img_len)
-
-                # Decode JPEG bytes
-                np_arr = np.frombuffer(img_data, np.uint8)
-                image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-                if image is None:
+                img_data = recvall(self.conn, img_len)
+                img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
+                
+                if self.a == 0:
+                    self.a = 1
+                    print(f"image data: {img}")
+                
+                if img is None:
                     print("[OCR Server] Failed to decode image")
                     continue
 
-                # Run EasyOCR
-                results = reader.readtext(image)
-                # print(results)
+                try:
+                    self.queue.put(img, block=True, timeout=1)
+                except Full:
+                    print("[OCR] Queue full — dropping frame")
+            except Exception as e:
+                print(f"[OCR] recv_loop error: {e}")
+                break
 
+    def ocr_worker(self):
+        while True:
+            img = self.queue.get()
+            if self.b == 0:
+                self.b = 1
+                print(f"image data from q: {img}")
 
-                # Send back the result
-                # encoded_text = .encode('utf-8')
-                # text_len = struct.pack('>I', len(encoded_text))
-                # conn.sendall(text_len + encoded_text)
-                
+            try:
+                results = self.reader.readtext(img)
+                # print(f"[OCR] Found {results} text regions")
+
                 for bbox, text, conf in results:
-                    # encoded_text = text.encode('utf-8')
-                    # text_len = struct.pack('>I', len(encoded_text))
-                    # conn.sendall(text_len + encoded_text)
+                    print(f"[OCR] {text} ({conf:.2f})")
+                    encoded_text = text.encode('utf-8')
+                    text_len = struct.pack('>I', len(encoded_text))
+                    self.conn.sendall(text_len + encoded_text)
 
                     if conf > 0.5:
                         # print(f"[OCR {round(conf,2)}] {text}")
                         top_left = tuple(map(int, bbox[0]))
                         bottom_right = tuple(map(int, bbox[2]))
 
-                        # Draw rectangle
-                        cv2.rectangle(image, top_left, bottom_right, (0, 255, 0), 2)
-
-                        # Put label
-                        cv2.putText(image, text, (top_left[0], top_left[1] - 10),
+                        cv2.rectangle(img, top_left, bottom_right, (0, 255, 0), 2)
+                        cv2.putText(img, text, (top_left[0], top_left[1] - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
-                # video.write(image)
-                cv2.imshow("Image", image)
-                cv2.waitKey(1)
+                self.ocr_queue.put(img, block=False)
 
-        except Exception as e:
-            print(f"[OCR Server] Error: {e}")
-        finally:
-            conn.close()
-            server.close()
-            cv2.destroyAllWindows()
+                # video.write(image)
+                # cv2.imshow("Image", img)
+                # cv2.waitKey(1)
+
+            except Exception as e:
+                print(f"[OCR] ocr_worker error: {e}")
+            finally:
+                self.queue.task_done()
+    
+    def run_ui(self):
+        cv2.namedWindow("OCR Preview", cv2.WINDOW_NORMAL)
+        while True:
+            img = self.ocr_queue.get()
+            cv2.imshow("OCR Preview", img)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+        cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    OcrServer(port=9999).run_ui()
