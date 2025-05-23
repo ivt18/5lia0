@@ -42,7 +42,7 @@ class QRCodeNode:
             "/home/jetbot/EVC/5lia0/workshop3_1561111/video_qr_code.avi",
             self.fourcc,
             15.0,
-            (640, 480)
+            (1280, 480)
         )
 
         self.first_image_received = False
@@ -117,14 +117,13 @@ class QRCodeNode:
                     self.send_command(False)
 
                 # Save the video
-                if undistorted_image is not None:
-                    rospy.loginfo("receiving undistorted, writing tovideo")
-                    resized_good = cv2.resize(undistorted_image, (640, 480))
-                    resized_raw = cv2.resize(cv_image_raw, (640, 480))
+                rospy.loginfo("receiving undistorted, writing tovideo")
+                resized_good = cv2.resize(undistorted_image, (640, 480))
+                resized_raw = cv2.resize(cv_image_raw, (640, 480))
 
-                    combi = cv2.hconcat([resized_good, resized_raw])
-                    
-                    self.video.write(combi)
+                combi = cv2.hconcat([resized_good, resized_raw])
+                
+                self.video.write(combi)
 
                 cv2.waitKey(1)  # Keep at 1 to prevent blocking
 
