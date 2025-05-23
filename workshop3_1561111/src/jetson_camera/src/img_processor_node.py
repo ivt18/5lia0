@@ -61,12 +61,8 @@ class ImgProcessorNode:
         try:
             # Decode image without CvBridge
             raw_image = cv2.imdecode(np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR)
-            # rospy.loginfo("Publisher - ImgProcessor delay: {}".format((rospy.Time.now() - data.header.stamp).to_sec()))
 
             if not self.calibrated:
-                # display raw image
-                # cv2.imshow("Raw Camera", raw_image)
-                # cv2.waitKey(1)
 
                 if self.currcalframes < self.N_CAL_FRAMES:
                     # record N_CAL_FRAMES of the checkerboard to calibrate
@@ -105,7 +101,6 @@ class ImgProcessorNode:
 
                 # Publish the image
                 self.pub_image.publish(msg)
-                # rospy.loginfo("Sent processed image")
 
 
         except CvBridgeError as err:
@@ -116,7 +111,6 @@ class ImgProcessorNode:
 
         # Find the chessboard corners
         ret, corners = cv2.findChessboardCorners(gray_img, chessboard_size, None)
-        # rospy.loginfo("Found chessboard? {}".format(ret))
 
         # If found, add object points, image points (after refining them)
         if ret == True:
@@ -128,11 +122,7 @@ class ImgProcessorNode:
 
             # update
             self.currcalframes += 1
-
-            # # Draw and display the corners
-            # cv2.drawChessboardCorners(gray_img, chessboard_size, corners2, ret)
-            # cv2.imshow('calibration', gray_img)
-            # cv2.waitKey(1)
+            
         return gray_img
 
     def calibrate(self, gray_image):
