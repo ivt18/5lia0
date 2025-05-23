@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="jetson_camera" type="camera_publisher_node.py" name="camera_publisher_node" output="screen">
+    <rosparam command="load" file="$(find jetson_camera)/config/parameters.yaml" />
+  </node>
+</launch>
