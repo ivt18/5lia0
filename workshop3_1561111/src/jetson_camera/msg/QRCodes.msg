@@ -1,2 +1,0 @@
-bool found
-string data
