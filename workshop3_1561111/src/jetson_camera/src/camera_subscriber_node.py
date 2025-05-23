@@ -34,11 +34,10 @@ class CameraSubscriberNode:
             self.first_image_received = True
             rospy.loginfo("Camera subscriber captured first image from publisher.")
         try:
-            # Commented to improve performance
+            # Temporarily commented out to improve performance
             # # Ensure the window updates instantly
             # cv2.imshow("Raw Camera View", cv_image_raw)
             # cv2.imshow("Undistorted Camera View", cv_image_undistorted)
-
 
             cv2.waitKey(1)  # Keep at 1 to prevent blocking
         except CvBridgeError as err:
