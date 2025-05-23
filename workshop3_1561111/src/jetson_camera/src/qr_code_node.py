@@ -54,30 +54,30 @@ class QRCodeNode:
             return
 
         # Process the QR code data if found
-        if data.found:
+        if found:
 
-            rospy.loginfo("QR code: %s", data.data)
+            rospy.loginfo("QR code: %s", data)
 
             msg = MovementRequest()
 
-            if data.data == "forward":
+            if data == "forward":
                 msg.request_type = 1
                 msg.value = 1
             
-            elif data.data == "reverse":
+            elif data == "reverse":
                 msg.request_type = 1
                 msg.value = -1
 
-            elif data.data == "rotate left":
+            elif data == "rotate left":
                 msg.request_type = 2
                 msg.value = -1
 
-            elif data.data == "rotate right":
+            elif data == "rotate right":
                 msg.request_type = 2
                 msg.value = 1
 
             else:
-                rospy.logwarn("Unknown command: %s", data.data)
+                rospy.logwarn("Unknown command: %s", data)
                 return
             
             self.publisher.publish(msg)
