@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   message_generation
+  motor_driver_package
 )
 
 # Add messages
@@ -24,7 +25,7 @@ generate_messages(
 
 # Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs
+  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs motor_driver_package
 )
 
 # Include directories
