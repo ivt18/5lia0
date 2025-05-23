@@ -62,19 +62,19 @@ class QRCodeNode:
 
             if data == "forward":
                 msg.request_type = 1
-                msg.value = 1
+                msg.value = 0.1
             
             elif data == "reverse":
                 msg.request_type = 1
-                msg.value = -1
+                msg.value = -0.1
 
             elif data == "rotate left":
                 msg.request_type = 2
-                msg.value = -1
+                msg.value = -0.1
 
             elif data == "rotate right":
                 msg.request_type = 2
-                msg.value = 1
+                msg.value = 0.1
 
             else:
                 rospy.logwarn("Unknown command: %s", data)
