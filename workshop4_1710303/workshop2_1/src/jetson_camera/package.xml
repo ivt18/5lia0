@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>jetson_camera_tracker</name>
+    <version>0.1.0</version>
+    <description>This package provides access to camera frames for any camera interface (CSI or USB).</description>
+
+    <!-- Maintainership Information -->
+    <maintainer email="v.rizeakos@student.tue.nl">V.Rizeakos</maintainer>
+    <license>BSD</license>
+
+    <!-- ROS dependencies -->
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>cv_bridge</build_depend>
+    <build_depend>rospy</build_depend>
+    <build_depend>std_msgs</build_depend>
+    <build_depend>sensor_msgs</build_depend>
+    <build_depend>message_generation</build_depend>
+
+    <!-- Runtime dependencies -->
+    <exec_depend>cv_bridge</exec_depend>
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>sensor_msgs</exec_depend>
+    <exec_depend>message_runtime</exec_depend>
+
+    <!-- Optional: testing dependencies -->
+    <test_depend>rostest</test_depend>
+    <test_depend>roslaunch</test_depend>
+</package>

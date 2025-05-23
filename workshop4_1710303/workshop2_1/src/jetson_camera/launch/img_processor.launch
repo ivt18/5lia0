@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="jetson_camera_tracker" type="img_processor_node.py" name="processing_node" output="screen"/>
+</launch>
