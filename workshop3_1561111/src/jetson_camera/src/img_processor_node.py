@@ -7,7 +7,6 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import CompressedImage
 
 from jetson_camera.msg import ProcessedImages
-from jetson_camera.msg import QRCodes
 
 
 chessboard_size = (7, 5)
@@ -15,7 +14,7 @@ chessboard_size = (7, 5)
 class ImgProcessorNode:
     def __init__(self):
         self.initialized = False
-        rospy.loginfo("Initializing camera subscriber node...")
+        rospy.loginfo("Initializing image processor node...")
         self.bridge = CvBridge()
 
         # Construct subscriber
@@ -34,16 +33,6 @@ class ImgProcessorNode:
             queue_size = 1
         )
 
-        # Construct publisher to send qr codes to the controller
-        self.publisher = rospy.Publisher(
-            "camera/qr_code",
-            QRCodes,
-            queue_size=10,
-        )
-
-        # Create QR Code Reader
-        self.qr_code_detector = cv2.QRCodeDetector()
-
         self.first_image_received = False
         self.initialized = True
         rospy.loginfo("ImgProcessing node initialized")
@@ -61,18 +50,6 @@ class ImgProcessorNode:
         self.camera_matrix = None
         self.distortion_coeff = None
         self.gray_img = None
-
-    def send_command(self, found, data):
-        if not self.initialized:
-            return
-
-        msg = QRCodes()
-
-        msg.found = found
-        msg.data = data
-        self.publisher.publish(msg)
-
-        rospy.loginfo("Sent command to controller: found = {}, data = {}".format(found, data))
 
     def image_cb(self, data):
         if not self.initialized:
@@ -107,24 +84,6 @@ class ImgProcessorNode:
 
             # once calibrated, we can begin undistorting and forwarding images
             undistorted_image = self.undistort(raw_image)
-
-            # Try to detect QR codes and decode if found
-            retval, points, straight_qrcode = self.qr_code_detector.detectAndDecode(undistorted_image)
-            
-            # Check if a QR code was detected
-            if retval:
-                # Display the decoded data from the QR code
-                cv2.putText(undistorted_image, retval, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                cv2.polylines(undistorted_image, [points.astype(int)], isClosed=True, color=(0, 255, 0), thickness=2)
-
-                # Drive forward if QR code detected
-                self.send_command(True, retval)
-            else:
-                # Display if no QR code was detected
-                cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-
-                # Send command that no QR code was found
-                self.send_command(False, "")
 
             # publish images
             msg = ProcessedImages()
