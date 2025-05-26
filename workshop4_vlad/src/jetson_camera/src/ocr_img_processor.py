@@ -179,6 +179,8 @@ class OcrCompressedNode:
                 rospy.loginfo("command request: {}".format(comm))
                 self.commands_pub.publish(comm)
                 self.commands_history.reset()
+                rospy.loginfo("will sleep now... zzzzz")
+                rospy.sleep(3.)
         
     
     def motor_cb(self, motor_data):
