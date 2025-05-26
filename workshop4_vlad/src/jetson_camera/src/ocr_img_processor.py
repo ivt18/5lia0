@@ -34,7 +34,7 @@ class CommandDecoder:
 
     def create_command_request(self, command):
         if command not in self.AVAILABLE_COMMANDS:
-            rospy.warninfo("comman decoder: command {} not a valid command".format(command))
+            rospy.logwarn("comman decoder: command {} not a valid command".format(command))
             return None
         
         msg = MovementRequest()
@@ -65,10 +65,11 @@ class CommandHistory:
 
     def __init__(self):
         self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
+        rospy.loginfo("history {}".format(self.history))
 
     def add(self, command):
         if command not in self.AVAILABLE_COMMANDS:
-            rospy.warninfo("unknown command {}".format(command))
+            rospy.logwarn("unknown command {}".format(command))
             return
         
         self.history[command] = self.history[command] + 1
@@ -91,7 +92,7 @@ class CommandHistory:
 
                 return self.add(ac)
 
-        rospy.warninfo("guess {} did not match any command".format(potential_command
+        rospy.logwarn("guess {} did not match any command".format(potential_command
                                                                 ))
 
     def reset(self):
@@ -155,9 +156,11 @@ class OcrCompressedNode:
     
     
     def watch_history(self):
+        rospy.loginfo("in watch history")
         consensus = None
         while not rospy.is_shutdown():
             possible_command = self.response_queue.get()
+            rospy.loginfo("received possible command {}".format(possible_command))
             
             self.state_lock.acquire()
             if self.state == JIMMY_STATE["stopped"]:
@@ -243,6 +246,7 @@ class OcrCompressedNode:
             try:
                 self.response_queue.put_nowait(detected_text) 
             except Queue.Full:
+                rospy.loginfo("queue is full")
                 pass
 
         print("reeive text cleanup")
