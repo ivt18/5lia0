@@ -137,7 +137,7 @@ class OcrCompressedNode:
         self.commands_pub = rospy.Publisher(
             "/motor_driver/commands",
             MovementRequest,
-            queue_size=10,
+            queue_size=2,
         )
 
         send_t = threading.Thread(target=self.send_images)
@@ -180,7 +180,7 @@ class OcrCompressedNode:
                 self.commands_pub.publish(comm)
                 self.commands_history.reset()
                 rospy.loginfo("will sleep now... zzzzz")
-                rospy.sleep(3.)
+                rospy.sleep(5.)
         
     
     def motor_cb(self, motor_data):
