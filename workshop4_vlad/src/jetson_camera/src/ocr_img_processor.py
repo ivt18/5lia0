@@ -49,7 +49,7 @@ class CommandDecoder:
             msg.value = self.degrees_to_rad(90)
         elif command is "FORWARD":
             msg.request_type = 1
-            msg.value = 1
+            msg.value = 0.3
         else:
             rospy.warninf("messed up the switch statements bro")
             msg.request_type = 1
