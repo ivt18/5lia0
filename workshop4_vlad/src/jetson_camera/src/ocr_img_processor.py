@@ -73,6 +73,7 @@ class CommandHistory:
             return
         
         self.history[command] = self.history[command] + 1
+        rospy.loginfo("added 1 to command: {}. Current value: {}".format(command, self.history[command]))
 
         if self.history[command] > 10:
             return command
@@ -175,6 +176,7 @@ class OcrCompressedNode:
             
             if consensus is not None:
                 comm = self.command_decoder.create_command_request(consensus)
+                rospy.loginfo("command request: {}".format(comm))
                 self.commands_pub.publish(comm)
                 self.commands_history.reset()
         
