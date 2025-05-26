@@ -25,19 +25,19 @@ class CameraSubscriberNode:
         # Save as video
         # self.video_writer = None
         # self.video_filename = "/home/jetson/camera_output.avi"
-        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video = cv2.VideoWriter(
-            "/home/jetbot/EVC/workshops/workshop2_1/video_undistored.avi",
-            self.fourcc,
-            15.0,
-            (640, 480)
-        )
-        self.video_raw = cv2.VideoWriter(
-            "/home/jetbot/EVC/workshops/workshop2_1/video_raw.avi",
-            self.fourcc,
-            15.0,
-            (1280, 480)
-        )
+        # self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # self.video = cv2.VideoWriter(
+            # "/home/jetbot/EVC/workshops/workshop2_1/video_undistored.avi",
+            # self.fourcc,
+            # 15.0,
+            # (640, 480)
+        # )
+        # self.video_raw = cv2.VideoWriter(
+            # "/home/jetbot/EVC/workshops/workshop2_1/video_raw.avi",
+            # self.fourcc,
+            # 15.0,
+            # (1280, 480)
+        # )
 
         self.first_image_received = False
         self.initialized = True
@@ -57,15 +57,15 @@ class CameraSubscriberNode:
             #rospy.loginfo("PubSub delay: {}".format((rospy.Time.now() - data.header.stamp).to_sec()))
 
             # Save the video
-            if cv_image_undistorted is not None:
-                rospy.loginfo("receiving undistorted, writing tovideo")
-                resized_good = cv2.resize(cv_image_undistorted, (640, 480))
-                resized_raw = cv2.resize(cv_image_raw, (640, 480))
+            # if cv_image_undistorted is not None:
+                # rospy.loginfo("receiving undistorted, writing tovideo")
+                # resized_good = cv2.resize(cv_image_undistorted, (640, 480))
+                # resized_raw = cv2.resize(cv_image_raw, (640, 480))
 
-                combi = cv2.hconcat([resized_good, resized_raw])
+                # combi = cv2.hconcat([resized_good, resized_raw])
                 
                 #self.video.write(combi)
-                self.video_raw.write(combi)
+                # self.video_raw.write(combi)
 
             # Ensure the window updates instantly
             cv2.imshow("Raw Camera View", cv_image_raw)
@@ -78,7 +78,7 @@ class CameraSubscriberNode:
 
     def cleanup(self):
         cv2.destroyAllWindows()
-        video.release()
+        # video.release()
 
 if __name__ == "__main__":
     # Initialize the node

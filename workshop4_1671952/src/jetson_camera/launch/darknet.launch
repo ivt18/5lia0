@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="jetson_camera" type="darknet_node.py" name="darknet_node" output="screen"/>
+</launch>

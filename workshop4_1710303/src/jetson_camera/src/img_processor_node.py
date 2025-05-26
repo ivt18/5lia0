@@ -31,7 +31,7 @@ class ImgProcessorNode:
         )
 
         self.pub_position = rospy.Publisher(
-            "camera/object_position", ObjectPosition, queue_size=1
+            "camera/object_position", ObjectPosition, queue_size=10
         )
 
         self.first_image_received = False
@@ -133,7 +133,6 @@ class ImgProcessorNode:
                 compressed_image_undistorted.data = encoded_image_undistorted.tobytes()
                 msg.raw_image = compressed_image_raw
                 msg.undistorted_image = compressed_image_undistorted
-
                 # Publish the image
                 self.pub_image.publish(msg)
                 rospy.loginfo("Sent processed image")
@@ -166,12 +165,11 @@ class ImgProcessorNode:
         if success:
             (x, y, w, h) = [int(v) for v in bbox]
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            object_position = ObjectPosition()
-            object_position.x = x
-            object_position.y = y
-            object_position.width = w
-            object_position.height = h
-            object_position.image_width = frame.shape[1]
+            self.object_position.x = x
+            self.object_position.y = y
+            self.object_position.width = w
+            self.object_position.height = h
+            self.object_position.image_width = frame.shape[1]
             self.pub_position.publish(self.object_position)
         else:
             cv2.putText(

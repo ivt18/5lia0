@@ -22,21 +22,6 @@ class CameraSubscriberNode:
             queue_size=1
         )
 
-        # Save as video
-        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video = cv2.VideoWriter(
-            "/home/jetbot/EVC/workshops/workshop2_1561111/video_undistorted.avi",
-            self.fourcc,
-            15.0,
-            (640, 480)
-        )
-        self.video_raw = cv2.VideoWriter(
-            "/home/jetbot/EVC/workshops/workshop2_1561111/video_raw.avi",
-            self.fourcc,
-            15.0,
-            (1280, 480)
-        )
-
         self.first_image_received = False
         self.initialized = True
         rospy.loginfo("Camera subscriber node initialized!")
@@ -49,25 +34,10 @@ class CameraSubscriberNode:
             self.first_image_received = True
             rospy.loginfo("Camera subscriber captured first image from publisher.")
         try:
-            # Decode image without CvBridge
-            cv_image_raw = cv2.imdecode(np.frombuffer(data.raw_image.data, np.uint8), cv2.IMREAD_COLOR)
-            cv_image_undistorted = cv2.imdecode(np.frombuffer(data.undistorted_image.data, np.uint8), cv2.IMREAD_COLOR)
-
-            # Save the video
-            if cv_image_undistorted is not None:
-                rospy.loginfo("receiving undistorted, writing tovideo")
-                resized_good = cv2.resize(cv_image_undistorted, (640, 480))
-                resized_raw = cv2.resize(cv_image_raw, (640, 480))
-
-                combi = cv2.hconcat([resized_good, resized_raw])
-                
-                self.video_raw.write(combi)
-
-            # Commented to improve performance
+            # Temporarily commented out to improve performance
             # # Ensure the window updates instantly
             # cv2.imshow("Raw Camera View", cv_image_raw)
             # cv2.imshow("Undistorted Camera View", cv_image_undistorted)
-
 
             cv2.waitKey(1)  # Keep at 1 to prevent blocking
         except CvBridgeError as err:
