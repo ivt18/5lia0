@@ -1,0 +1,2 @@
+source devel/setup.bash
+roslaunch jetson_camera ocr_processing.launch
