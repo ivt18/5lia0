@@ -113,7 +113,7 @@ class OcrCompressedNode:
         self.state_lock = threading.Lock()
         
         self.image_queue = Queue.Queue()
-        self.response_queue = Queue.Queue(maxsize=1)
+        self.response_queue = Queue.Queue(maxsize=4)
         
         self.sub_image = rospy.Subscriber(
             "/camera/image_processed_vlad",
@@ -143,8 +143,10 @@ class OcrCompressedNode:
         motor_t = threading.Thread(target=self.watch_history)
         send_t.daemon = True
         rec_t.daemon = True
+        motor_t.daemon = True
         send_t.start()
         rec_t.start()
+        motor_t.start()
 
         self.initialized = True
 
