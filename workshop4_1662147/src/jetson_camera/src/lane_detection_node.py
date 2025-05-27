@@ -8,8 +8,10 @@ import rospy
 
 from cv_bridge import CvBridgeError
 
+import datatypes
+
+from controller_package.msg import MovementRequest
 from jetson_camera.msg import ProcessedImages
-from jetson_camera.msg import Lanes
 
 
 class LaneDetectionNode:
@@ -31,8 +33,8 @@ class LaneDetectionNode:
 
         # construct lanes publisher
         self.publisher = rospy.Publisher(
-            "/camera/lanes",
-            Lanes,
+            "/motor_driver/commands",
+            MovementRequest,
             queue_size=1,
         )
 
@@ -61,18 +63,22 @@ class LaneDetectionNode:
             # decode image without CvBridge
             img = cv.imdecode(np.frombuffer(data.undistorted_image.data, np.uint8), cv.IMREAD_COLOR)
             width, height = img.shape[1], img.shape[0]
+            # rimg = cv.resize(img, (600, 480))
+            cv.imshow("Input", img)
 
             # highlight and extract edges from image
             gray_img = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
             cannyed_img = cv.Canny(gray_img, 100, 200)
+            cannyed_img = cv.resize(cannyed_img, (600, 480))
 
-            cv.imshow("Canny", cannyed_img)
+            # cv.imshow("Canny", cannyed_img)
 
             # crop image to ROI
             roi_vertices = [(0, height), (width / 2, height / 2), (width, height)]
             roi_img = self.region_of_interest(cannyed_img, np.array([roi_vertices], np.int32))
 
-            cv.imshow("ROI", roi_img)
+            # roi_img = roi_img.resize(roi_img, (600, 480))
+            # cv.imshow("ROI", roi_img)
 
             # apply Hough line transformation
             hough_lines = cv.HoughLinesP(roi_img,
@@ -90,9 +96,9 @@ class LaneDetectionNode:
                 n_left = len(lines['left']['x'])
                 n_right = len(lines['right']['x'])
                 n = n_left + n_right
-                rospy.loginfo("detected {n} lines".format(n=n))
-            else:
-                rospy.loginfo("detected 0 lines")
+                # rospy.loginfo("detected {n} lines".format(n=n))
+            # else:
+                # rospy.loginfo("detected 0 lines")
 
             # fit a linear polynomial to the left and right lines
             min_y = int(img.shape[0] * 3 / 5)   # slightly below the middle of the image
@@ -104,6 +110,7 @@ class LaneDetectionNode:
             
             for side in ['left', 'right']:
                 if lines[side]['x'] and lines[side]['y']:
+                    # rospy.loginfo("detected lane")
                     poly[side] = np.poly1d(np.polyfit(lines[side]['y'], lines[side]['x'], deg=1))
                     start[side]['x'] = int(poly[side](max_y))
                     end[side]['x'] = int(poly[side](min_y))
@@ -116,12 +123,6 @@ class LaneDetectionNode:
             self.publish(start, end)
             
             # create filled polygon between the lanes
-            """
-            rospy.loginfo("start[right][x]: {x}".format(x=start['right']['x']))
-            rospy.loginfo("max_y: {x}".format(x=max_y))
-            rospy.loginfo("end[right][x]: {x}".format(x=end['right']['x']))
-            rospy.loginfo("min_y: {x}".format(x=min_y))
-            """
             lane_img = self.draw_lane_lines(
                 img,
                 [start['left']['x'], max_y, end['left']['x'], min_y],
@@ -133,6 +134,7 @@ class LaneDetectionNode:
             # self.video.write(vid)
 
             # display lane_img
+            lane_img = cv.resize(lane_img, (600, 480))
             cv.imshow("Lane Detection", lane_img)
             cv.waitKey(1)
 
@@ -165,13 +167,17 @@ class LaneDetectionNode:
 
         return lines
 
-    def publish(self, left_lane, right_lane):
-        msg = Lanes()
+    def publish(self, start, end):
+        msg = MovementRequest()
 
-        msg.left_low_x, msg.left_low_y, msg.left_high_x, msg.left_high_y = left_lane
-        msg.right_low_x, msg.right_low_y, msg.right_high_x, msg.right_high_y = right_lane
-        
-        self.publisher.publish(msg)
+        msg.request_type = datatypes.MovementRequest.MOVEMENT_REQUEST
+
+        # lane_detected -> move forward
+        if (start['left']['x'] != 0) and (start['right']['x'] != 0) and \
+            (end['left']['x'] != 0) and (end['right']['x'] != 0):
+            msg.value = 0.1
+            rospy.loginfo("Published request: {typ}/{val}".format(typ=msg.request_type, val=msg.value))
+            self.publisher.publish(msg)
     
     def draw_lane_lines(self, image, left_lane, right_lane, color=[0, 255, 0], thickness=10):
         lane_img = np.zeros_like(image)
