@@ -3,6 +3,8 @@
 import numpy as np
 import rospy
 
+from std_msgs.msg import UInt16
+
 from config import get_car_config
 from datatypes import Position
 from motor_driver_package.msg import Position, EncoderData
@@ -19,12 +21,20 @@ class PositionEstimatorNode:
         self.config = get_car_config()
         self.position = Position(0, 0, 0)
 
-        # Construct subscriber
+        # Construct subscribers
         self.encoder = rospy.Subscriber(
             "/motor_driver/encoder",
             EncoderData,
             self.read_encoder,
             buff_size=1000000,
+            queue_size=1,
+        )
+
+        self.tof = rospy.Subscriber(
+            "/tof/distance",
+            UInt16,
+            self.read_tof,
+            buff_size=10,
             queue_size=1,
         )
 
@@ -52,6 +62,10 @@ class PositionEstimatorNode:
 
         # publish updated position
         self.publish()
+
+    
+    def read_tof(self, tof_data):
+        distance = tof_data.data
 
     
     def publish(self):
