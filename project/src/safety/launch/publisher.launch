@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="safety" type="test_publisher.py" name="test_publisher" output="screen"></node>
+</launch>
