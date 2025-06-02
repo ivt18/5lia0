@@ -7,6 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from jetson_camera.msg import ProcessedImages
 from jetson_camera.msg import MovementRequest
+from jetson_camera.msg import TrackingInfo
 
 class QRCodeNode:
     def __init__(self):
@@ -24,9 +25,16 @@ class QRCodeNode:
         )
 
         # Construct publisher
-        self.publisher = rospy.Publisher(
+        self.publisher_commands = rospy.Publisher(
             "/motor_driver/commands",
             MovementRequest,
+            queue_size=10,
+        )
+
+        # Construct publisher for tracking info
+        self.publisher = rospy.Publisher(
+            "/motor_driver/tracking_info",
+            TrackingInfo,
             queue_size=10,
         )
 
@@ -77,7 +85,7 @@ class QRCodeNode:
                 rospy.logwarn("Unknown command: %s", data)
                 return
             
-            self.publisher.publish(msg)
+            self.publisher_commands.publish(msg)
 
         rospy.loginfo("Sent command to controller: found = {}, data = {}".format(found, data))
 
@@ -87,8 +95,7 @@ class QRCodeNode:
 
         rospy.loginfo("QR code follow, offset: {}, distance: {}".format(offset_width, distance))
 
-        msg = MovementRequest()
-        msg.request_type = 3
+        msg = TrackingInfo()
         msg.offset = offset_width
         msg.distance = distance
         self.publisher.publish(msg)
