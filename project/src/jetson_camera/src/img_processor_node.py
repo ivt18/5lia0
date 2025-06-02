@@ -51,6 +51,8 @@ class ImgProcessorNode:
         self.distortion_coeff = None
         self.gray_img = None
 
+        self.print_counter = 0
+
     def image_cb(self, data):
         if not self.initialized:
             return
@@ -102,7 +104,11 @@ class ImgProcessorNode:
 
                 # Publish the image
                 self.pub_image.publish(msg)
-                rospy.loginfo("Sent processed image")
+
+                self.print_counter += 1
+
+                if self.print_counter % 100 == 0:
+                    rospy.loginfo("Sent 100 processed images")
 
 
         except CvBridgeError as err:
