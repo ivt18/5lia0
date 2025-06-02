@@ -24,8 +24,8 @@ class Node:
         rospy.loginfo("Node {name} initialized!".format(name=self.node_name))
             
         while True:
-            # value = bool(input("signal: "))
-            value = False
+            value = bool(input("signal: "))
+            # value = False
 
             msg = Bool()
             msg.data = value

@@ -7,3 +7,9 @@ class StopGo(Enum):
     STOP = False 
     GO = True
 
+
+class StopSign(Enum):
+    GO = 0
+    STOP = 1
+    LEAVING = 2
+

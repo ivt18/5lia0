@@ -6,7 +6,7 @@ import rospy
 
 from std_msgs.msg import Bool
 
-from enums import StopGo
+from enums import StopGo, StopSign
 
 
 STOP_SIGN_TIME = 3      # time (sec) to serve a stop sign
@@ -45,6 +45,7 @@ class SafetyNode:
 
         # current state of all stop/go signals
         self.signals = {"text": StopGo.GO, "pedestrian": StopGo.GO}
+        self.stop_sign_state = StopSign.GO
         
         # time when the last stop sign began to be served
         self.stop_sign_start = -STOP_SIGN_TIME
@@ -66,8 +67,12 @@ class SafetyNode:
         signal = data.data
 
         # if we receive a STOP while in GO, this is a new stop sign -> begin stop sequence
-        if signal == StopGo.STOP.value and self.signals["text"] == StopGo.GO:
+        if signal == StopGo.STOP.value and self.stop_sign_state == StopSign.GO:
             self.stop_sign_start = time.time()
+            self.stop_sign_state = StopSign.STOP
+        # if we receive a GO while leaving a STOP, then the STOP sign is no longer visible and we can reset
+        elif signal == StopGo.GO.value and self.stop_sign_state == StopSign.LEAVING:
+            self.stop_sign_state = StopSign.GO
 
 
     def pedestrian_cb(self, data):
@@ -88,6 +93,8 @@ class SafetyNode:
             self.signals["text"] = StopGo.STOP
         else:
             self.signals["text"] = StopGo.GO
+            if self.stop_sign_state == StopSign.STOP:
+                self.stop_sign_state = StopSign.LEAVING
         """
         - if we have finished serving the last stop sign, and are currently in GO, send GO
 
