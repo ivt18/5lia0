@@ -41,5 +41,6 @@ catkin_install_python(PROGRAMS
   src/camera_publisher_node.py
   src/camera_subscriber_node.py
   src/img_processor_node.py
+  src/qr_code_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

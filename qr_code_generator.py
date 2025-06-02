@@ -1,6 +1,6 @@
 import qrcode
 
-data = "forward"
+data = "follow"
 
 qr = qrcode.QRCode(
     box_size=10,
