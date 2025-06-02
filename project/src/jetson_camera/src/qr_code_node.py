@@ -6,7 +6,7 @@ import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 
 from jetson_camera.msg import ProcessedImages
-from jetson_camera.msg import MovementRequest
+from motor_driver_package.msg import MovementRequest
 from jetson_camera.msg import QRTrackingInfo
 
 class QRCodeNode:
