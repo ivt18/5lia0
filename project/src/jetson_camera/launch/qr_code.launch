@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="jetson_camera" type="qr_code_node.py" name="qr_code_node" output="screen"/>
+</launch>

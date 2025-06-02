@@ -14,7 +14,7 @@ chessboard_size = (7, 5)
 class ImgProcessorNode:
     def __init__(self):
         self.initialized = False
-        rospy.loginfo("Initializing camera subscriber node...")
+        rospy.loginfo("Initializing image processor node...")
         self.bridge = CvBridge()
 
         # Construct subscriber
