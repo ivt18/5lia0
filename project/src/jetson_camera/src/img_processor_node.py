@@ -128,7 +128,7 @@ class ImgProcessorNode:
 
             # Draw and display the corners
             cv2.drawChessboardCorners(gray_img, chessboard_size, corners2, ret)
-        cv2.imshow('calibration', gray_img)
+        # cv2.imshow('calibration', gray_img)
         cv2.waitKey(1)
         return gray_img
 
