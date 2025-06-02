@@ -42,5 +42,6 @@ catkin_install_python(PROGRAMS
   src/motor_driver_node.py
   src/position_estimator_node.py
   src/receiver_node.py
+  src/fusion_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

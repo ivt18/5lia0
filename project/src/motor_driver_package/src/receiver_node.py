@@ -3,7 +3,7 @@
 import numpy as np
 import rospy
 
-from controller_package.msg import MovementRequest
+from motor_driver_package.msg import MovementRequest
 from motor_driver_package.msg import MotorSpeedRequest, Position
 
 from config import get_car_config, get_motor_calibration_config

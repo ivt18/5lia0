@@ -14,7 +14,7 @@ add_message_files(
   FILES
   ProcessedImages.msg
   MovementRequest.msg
-  TrackingInfo.msg
+  QRTrackingInfo.msg
 )
 
 # Generate messages

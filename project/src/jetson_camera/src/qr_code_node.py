@@ -7,7 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from jetson_camera.msg import ProcessedImages
 from jetson_camera.msg import MovementRequest
-from jetson_camera.msg import TrackingInfo
+from jetson_camera.msg import QRTrackingInfo
 
 class QRCodeNode:
     def __init__(self):
@@ -33,8 +33,8 @@ class QRCodeNode:
 
         # Construct publisher for tracking info
         self.publisher = rospy.Publisher(
-            "/motor_driver/tracking_info",
-            TrackingInfo,
+            "/motor_driver/qr_tracking_info",
+            QRTrackingInfo,
             queue_size=10,
         )
 
@@ -89,13 +89,14 @@ class QRCodeNode:
 
         rospy.loginfo("Sent command to controller: found = {}, data = {}".format(found, data))
 
-    def send_relative_command(self, offset_width, distance):
+    def send_relative_command(self, found, offset_width=0, distance=0):
         if not self.initialized:
             return
 
         rospy.loginfo("QR code follow, offset: {}, distance: {}".format(offset_width, distance))
 
-        msg = TrackingInfo()
+        msg = QRTrackingInfo()
+        msg.found = found
         msg.offset = offset_width
         msg.distance = distance
         self.publisher.publish(msg)
@@ -136,7 +137,7 @@ class QRCodeNode:
                         # Calculate distance to the QR code
                         distance = np.mean(points[:, 1]) / h
 
-                        self.send_relative_command(offset_width, distance)
+                        self.send_relative_command(True, offset_width, distance)
                     else:
                         # Drive forward if QR code detected
                         self.send_command(True, data=retval)
@@ -145,7 +146,7 @@ class QRCodeNode:
                     cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
                     # Send command that no QR code was found
-                    self.send_command(False)
+                    self.send_relative_command(False)
 
                 # Save the video
                 rospy.loginfo("receiving undistorted, writing tovideo")
