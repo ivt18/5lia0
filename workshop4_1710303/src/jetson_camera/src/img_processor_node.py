@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-
 import cv2
+import os
 import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from jetson_camera_tracker.msg import ProcessedImages, ObjectPosition
 from sensor_msgs.msg import CompressedImage
+import torch
+
+from ultralytics import YOLO
+
+# model = YOLO('home/ubuntu/.ros/detect/train/weights/best.pt')
+# model.conf = 0.4  # confidence threshold
 
 chessboard_size = (7, 5)
+output_img_dir = 'images/val'
+output_lbl_dir = 'labels/val'
+os.makedirs(output_img_dir, exist_ok=True)
+os.makedirs(output_lbl_dir, exist_ok=True)
 
 
 class ImgProcessorNode:
@@ -15,6 +25,7 @@ class ImgProcessorNode:
         self.initialized = False
         rospy.loginfo("Initializing camera subscriber node...")
         self.bridge = CvBridge()
+        self.frame_id = self.load_frame_id()
 
         # Construct subscriber
         self.sub_image = rospy.Subscriber(
@@ -59,8 +70,10 @@ class ImgProcessorNode:
         self.gray_img = None
 
         self.tracker_is_init = False
+        self.tracking = False
         self.tracker = None
         self.template = None
+        self.target_class = "rc_car"
         self.w = 0
         self.h = 0
         self.object_position = ObjectPosition()
@@ -78,6 +91,7 @@ class ImgProcessorNode:
             raw_image = cv2.imdecode(
                 np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR
             )
+            print("Current working directory:", os.getcwd())
             
             # rospy.loginfo("Publisher - ImgProcessor delay: {}".format((rospy.Time.now() - data.header.stamp).to_sec()))
 
@@ -105,14 +119,7 @@ class ImgProcessorNode:
                 return
             # once calibrated, we can begin undistorting and forwarding images
             undistorted_image = self.undistort(raw_image)
-
-            if self.tracker_is_init:
-                tracked_image = self.track_image(undistorted_image)
-            else:
-                self.tracker_init(
-                    cv2.imdecode(np.frombuffer(data.data, np.uint8), cv2.IMREAD_COLOR)
-                )
-                tracked_image = undistorted_image
+            tracked_image = self.track_image(undistorted_image)
 
             # publish images
             msg = ProcessedImages()
@@ -155,22 +162,26 @@ class ImgProcessorNode:
         return
 
     def track_image(self, frame):
+        if not self.tracker_is_init:
+            self.tracker_init(frame)
         if frame is None:
             return  # Stop if no frame is received
 
         # Update tracker
         success, bbox = self.tracker.update(frame)
-
+        
         # Draw bounding box
         if success:
             (x, y, w, h) = [int(v) for v in bbox]
+            frame_raw = frame
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             self.object_position.x = x
             self.object_position.y = y
             self.object_position.width = w
             self.object_position.height = h
             self.object_position.image_width = frame.shape[1]
-            self.pub_position.publish(self.object_position)
+
+            # self.store_image(frame_raw, x, y, w, h)
         else:
             cv2.putText(
                 frame,
@@ -183,6 +194,80 @@ class ImgProcessorNode:
             )
 
         return frame
+
+    def track_object(self, img_w, x, y, w, h):
+        kp = 0.05
+        center_x = img_w / 2
+        object_x = x + w/2
+        error_x = object_x - center_x
+        rospy.loginfo("error_x: %s", error_x)
+        
+        if error_x > 0 or error_x < -20:
+            angle = kp * error_x
+
+    def store_image(self, frame_raw, x, y, w, h):
+        img_h, img_w = frame_raw.shape[:2]
+
+        # Normalize for YOLO format
+        cx = (x + w / 2) / img_w
+        cy = (y + h / 2) / img_h
+        nw = w / img_w 
+        nh = h / img_h
+
+        # Save image and label
+        img_name = f"{self.frame_id:05d}.jpg"
+        lbl_name = f"{self.frame_id:05d}.txt"
+
+        cv2.imwrite(os.path.join(output_img_dir, img_name), frame_raw)
+        with open(os.path.join(output_lbl_dir, lbl_name), 'w') as f:
+            f.write(f"0 {cx:.6f} {cy:.6f} {nw:.6f} {nh:.6f}\n")
+        rospy.loginfo("Wrote image %s", self.frame_id)
+
+        self.frame_id += 1
+        self.save_frame_id(self.frame_id)
+
+    def detector_track(self, frame):
+        if self.tracking:
+            success, bbox = self.tracker.update(frame)
+            if success:
+                x, y, w, h = [int(v) for v in bbox]
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            else:
+                rospy.loginfo("⚠️ Tracker lost target, falling back to detection.")
+                self.tracking = False  # tracker failed
+
+        # --- If not tracking or lost, run YOLO detection
+        if not self.tracking:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = model(frame_rgb)
+            detections = results.pred[0]  # detections for this frame
+
+            for *xyxy, conf, cls in detections:
+                class_name = model.names[int(cls)]
+                if class_name == target_class:
+                    x1, y1, x2, y2 = [int(v) for v in xyxy]
+                    bbox = (x1, y1, x2 - x1, y2 - y1)
+
+                    # (Re)initialize tracker
+                    self.tracker = cv2.TrackerCSRT_create()
+                    self.tracker.init(frame, bbox)
+                    self.tracking = True
+
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                    break
+        return frame
+
+
+    def load_frame_id(self, path='frame_index.txt'):
+        try:
+            with open(path, 'r') as f:
+                return int(f.read())
+        except:
+            return 0  # Start from 0 if file doesn't exist
+
+    def save_frame_id(self, frame_id, path='frame_index.txt'):
+        with open(path, 'w') as f:
+            f.write(str(frame_id))
 
     def find_chessboard(self, raw_image):
         gray_img = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)
