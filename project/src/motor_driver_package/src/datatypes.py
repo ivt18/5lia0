@@ -15,7 +15,17 @@ class MovementRequest:
     # request types
     MOVEMENT_REQUEST = 1
     TURN_REQUEST = 2
+    WIDE_TURN_REQUEST = 3
 
     def __init__(self, request_type, value):
         self.request_type = request_type
         self.value = value
+
+
+class SafetyCarPosition:
+    def __init__(self, x=0, y=0, d=0, a=0):
+        self.x = x
+        self.y = y
+        self.distance = d
+        self.angle = a
+

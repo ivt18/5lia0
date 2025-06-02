@@ -115,8 +115,8 @@ class ReceiverNode:
 
         request = datatypes.MovementRequest(data.request_type, data.value)
         target_position = datatypes.Position(0, 0, 0)
-        mult_left = 1
-        mult_right = 1
+        mult_left = 1.0
+        mult_right = 1.0
         
         if (request.request_type == datatypes.MovementRequest.MOVEMENT_REQUEST):
             delta_req = float(data.value) / float(self.config.wheel_radius) # radians
@@ -151,6 +151,13 @@ class ReceiverNode:
                 self.config.wheelbase,
                 delta_left, delta_right)
 
+        if (request.request_type == datatypes.MovementRequest.WIDE_TURN_REQUEST):
+            target_rotation = self.current_position.theta + request.value
+            if (request.value < 0): # turn right
+                mult_left -= float(request.value) / np.pi
+            else: # turn left
+                mult_right += float(request.value) / np.pi
+
         left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
         right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
 
@@ -175,6 +182,16 @@ class ReceiverNode:
                 rospy.loginfo("%f", self.current_position.theta)
                 prev_rotation = current_rotation
                 current_rotation = np.abs(self.getRotationTo(target_position))
+                rospy.Rate(20).sleep
+
+        if (request.request_type == datatypes.MovementRequest.WIDE_TURN_REQUEST):
+            current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
+            prev_delta_rotation = current_delta_rotation
+
+            while (current_delta_rotation > 0.03 and current_delta_rotation < prev_delta_rotation + 0.01): # 0.1 rad tolerance
+                rospy.loginfo("%f", self.current_position.theta)
+                prev_delta_rotation = current_delta_rotation
+                current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
                 rospy.Rate(20).sleep
 
         rospy.loginfo("Arrived at target destination")
