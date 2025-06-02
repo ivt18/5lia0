@@ -129,13 +129,19 @@ class QRCodeNode:
                         h, w = undistorted_image.shape[:2]
                         center_width = w / 2
 
-                        qr_center_width = np.mean(points[:, 0])
+                        # Get max coordinates of the QR code
+                        rospy.loginfo("QR code points: {}".format(points))
+                        x_coordinates = points[:, 0]
+
+                        # Calculate the center of the QR code
+                        qr_center_width = (np.max(x_coordinates) + np.min(x_coordinates)) / 2
 
                         # Calculate QRCode offset from the center
                         offset_width = (qr_center_width - center_width) / center_width
 
-                        # Calculate distance to the QR code
-                        distance = np.mean(points[:, 1]) / h
+                        # Calculate distance to the QR code based on its width
+                        qr_width = np.max(points[:, 0]) - np.min(points[:, 0])
+                        distance = 0.5 / qr_width
 
                         self.send_relative_command(True, offset_width, distance)
                     else:
@@ -149,7 +155,6 @@ class QRCodeNode:
                     self.send_relative_command(False)
 
                 # Save the video
-                rospy.loginfo("receiving undistorted, writing tovideo")
                 resized_good = cv2.resize(undistorted_image, (640, 480))
                 resized_raw = cv2.resize(cv_image_raw, (640, 480))
 
