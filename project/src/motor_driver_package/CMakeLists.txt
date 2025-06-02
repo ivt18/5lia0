@@ -14,6 +14,7 @@ add_message_files(
   EncoderData.msg
   Position.msg
   MotorSpeedRequest.msg
+  MovementRequest.msg
 )
 
 # Generate messages
