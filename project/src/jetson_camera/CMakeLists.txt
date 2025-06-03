@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   message_generation
+  motor_driver_package
 )
 
 # Add messages
@@ -26,7 +27,7 @@ generate_messages(
 
 # Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs
+  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs motor_driver_package
 )
 
 # Include directories
@@ -45,5 +46,6 @@ catkin_install_python(PROGRAMS
   src/img_processor_node.py
   src/qr_code_node.py
   src/object_tracker_node.py
+  src/ocr_img_processor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
