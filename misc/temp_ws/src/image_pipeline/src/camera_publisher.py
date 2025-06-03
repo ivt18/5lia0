@@ -5,13 +5,20 @@ from sensor_msgs.msg import CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 from image_pipeline.msg import ProcessedImages
 import cv2
+import os
 
 def main():
     rospy.init_node('camera_publisher', anonymous=True)
     pub = rospy.Publisher('/camera/image_processed', ProcessedImages, queue_size=1)
     # bridge = CvBridge()
 
-    cap = cv2.VideoCapture(0)
+    video_path = os.path.expanduser("~/EVC/vision_video.mp4")
+
+    if not os.path.exists(video_path):
+        rospy.logerr("Video file does not exist.")
+        exit(1)
+
+    cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
         rospy.logerr("Could not open camera.")
@@ -27,7 +34,9 @@ def main():
 
         ret, frame = cap.read()
         if not ret:
-            rospy.logwarn("Failed to capture image")
+            # rospy.logwarn("Failed to capture image")
+            rospy.loginfo("restarting video loop")
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
         try:
             # Convert the OpenCV image to a ROS CompressedImage message
