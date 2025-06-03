@@ -1,0 +1,6 @@
+<launch>
+
+  <!-- Start Camera Publisher -->
+  <node name="camera_publisher" pkg="image_pipeline" type="camera_publisher.py" output="screen" />
+
+</launch>

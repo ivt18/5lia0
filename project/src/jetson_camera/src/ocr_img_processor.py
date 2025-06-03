@@ -12,10 +12,10 @@ import socket
 import struct
 import Queue
 import threading
-from levenshtein import levenshtein 
+from levenshtein import levenshtein
 import math
 
-ocr_server_ip = "192.168.8.169"
+ocr_server_ip = "192.168.0.48"
 
 JIMMY_STATE = {
     "moving": 0,
@@ -36,15 +36,15 @@ class CommandDecoder:
         if command not in self.AVAILABLE_COMMANDS:
             rospy.logwarn("comman decoder: command {} not a valid command".format(command))
             return None
-        
+
         msg = MovementRequest()
 
         if command is "LEFT":
-            msg.request_type = 2 
+            msg.request_type = 2
             # FIXME: this might be problematic not sure about the value
             msg.value = self.degrees_to_rad(-90)
         elif command is "RIGHT":
-            msg.request_type = 2 
+            msg.request_type = 2
             # FIXME: this might be problematic not sure about the value
             msg.value = self.degrees_to_rad(90)
         elif command is "FORWARD":
@@ -54,13 +54,13 @@ class CommandDecoder:
             rospy.warninf("messed up the switch statements bro")
             msg.request_type = 1
             msg.value = 1
-        
+
         return msg
-        
-    
-    
+
+
+
 class CommandHistory:
-    
+
     AVAILABLE_COMMANDS = ["LEFT", "RIGHT", "FORWARD"]
 
     def __init__(self):
@@ -71,7 +71,7 @@ class CommandHistory:
         if command not in self.AVAILABLE_COMMANDS:
             rospy.logwarn("unknown command {}".format(command))
             return
-        
+
         self.history[command] = self.history[command] + 1
         rospy.loginfo("added 1 to command: {}. Current value: {}".format(command, self.history[command]))
 
@@ -79,13 +79,13 @@ class CommandHistory:
             return command
         else:
             return None
-    
+
     def guess(self, potential_command):
         potential_command = potential_command.upper()
-        
+
         for ac in self.AVAILABLE_COMMANDS:
-            score = levenshtein(ac, potential_command) 
-            # possible commands are completely different lexicographically we can be confident with 
+            score = levenshtein(ac, potential_command)
+            # possible commands are completely different lexicographically we can be confident with
             # distance 1
             if score <= 1:
                 rospy.loginfo("guess: {guess}, match: {match}, score: {score}"
@@ -98,33 +98,33 @@ class CommandHistory:
 
     def reset(self):
         self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
-        
+
 
 class OcrCompressedNode:
     def __init__(self):
-        self.initialized = False 
+        self.initialized = False
         rospy.init_node('ocr_node', anonymous=True)
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
         self.s = socket.socket()
-        self.s.connect((ocr_server_ip, 9999)) 
+        self.s.connect((ocr_server_ip, 9999))
         rospy.loginfo("Connected to socket server.")
 
         self.commands_history = CommandHistory()
         self.command_decoder = CommandDecoder()
         self.state = JIMMY_STATE["idle"]
         self.state_lock = threading.Lock()
-        
+
         self.image_queue = Queue.Queue()
         self.response_queue = Queue.Queue(maxsize=2)
-        
+
         self.sub_image = rospy.Subscriber(
-            "/camera/image_processed_vlad",
+            "/camera/image_processed",
             ProcessedImages,
             self.image_cb,
             buff_size=2**25,
             queue_size=1
         )
-    
+
         self.sub_motors= rospy.Subscriber(
             "/motor_driver/motors",
             MotorSpeedRequest,
@@ -154,15 +154,15 @@ class OcrCompressedNode:
 
         rospy.on_shutdown(self.shutdown_hook)
         rospy.spin()
-    
-    
+
+
     def watch_history(self):
         rospy.loginfo("in watch history")
         consensus = None
         while not rospy.is_shutdown():
             possible_command = self.response_queue.get()
             rospy.loginfo("received possible command {}".format(possible_command))
-            
+
             self.state_lock.acquire()
             if self.state == JIMMY_STATE["stopped"]:
                 self.state = JIMMY_STATE["idle"]
@@ -171,9 +171,9 @@ class OcrCompressedNode:
             if self.state == JIMMY_STATE["idle"]:
                 consensus = self.commands_history.guess(possible_command)
                 rospy.loginfo("reached consesnus command: {}".format(consensus))
-            
+
             self.state_lock.release()
-            
+
             if consensus is not None:
                 comm = self.command_decoder.create_command_request(consensus)
                 rospy.loginfo("command request: {}".format(comm))
@@ -181,19 +181,19 @@ class OcrCompressedNode:
                 self.commands_history.reset()
                 rospy.loginfo("will sleep now... zzzzz")
                 rospy.sleep(5.)
-        
-    
+
+
     def motor_cb(self, motor_data):
         if not self.initialized:
             return
 
         rospy.loginfo("Received request: left_wheel = %f, right_wheel = %f",
             motor_data.speed_left_wheel, motor_data.speed_right_wheel)
-        
+
         self.state_lock.acquire()
         if motor_data.speed_left_wheel == 0 and motor_data.speed_right_wheel == 0:
             if self.state != JIMMY_STATE["idle"]:
-                # watch_history func will change this to idle 
+                # watch_history func will change this to idle
                 self.state = JIMMY_STATE["stopped"]
         else:
             self.state = JIMMY_STATE["moving"]
@@ -248,7 +248,7 @@ class OcrCompressedNode:
             # self.pub_text.publish(detected_text)
 
             try:
-                self.response_queue.put_nowait(detected_text) 
+                self.response_queue.put_nowait(detected_text)
             except Queue.Full:
                 rospy.loginfo("queue is full")
                 pass
