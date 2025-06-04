@@ -9,7 +9,7 @@ import os
 
 def main():
     rospy.init_node('camera_publisher', anonymous=True)
-    pub = rospy.Publisher('/camera/image_processed', ProcessedImages, queue_size=1)
+    pub = rospy.Publisher('/camera/image_processed', ProcessedImages, queue_size=10)
     # bridge = CvBridge()
 
     video_path = os.path.expanduser("~/EVC/vision_video.mp4")
@@ -24,7 +24,7 @@ def main():
         rospy.logerr("Could not open camera.")
         return
 
-    rate = rospy.Rate(25)  # 10 Hz
+    rate = rospy.Rate(20)  # 10 Hz
     msg = CompressedImage()
     msg.format = "jpeg"
 
@@ -35,13 +35,18 @@ def main():
         ret, frame = cap.read()
         if not ret:
             # rospy.logwarn("Failed to capture image")
-            rospy.loginfo("restarting video loop")
+            rospy.loginfo("restarting video loop woop")
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
         try:
+            # rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
             # Convert the OpenCV image to a ROS CompressedImage message
             success, encoded_image = cv2.imencode(".jpg", frame)
             if success:
+                # cv2.imshow("Camera subscriber", frame)
+                # cv2.waitKey(1)
+
                 msg.header.stamp = rospy.Time.now()
                 msg.data = encoded_image.tobytes()
 
@@ -49,6 +54,9 @@ def main():
                 processed_msg.undistorted_image = msg
                 # Publish the image
                 pub.publish(processed_msg)
+                rate.sleep()
+
+
 
         except CvBridgeError as e:
             rospy.logerr("Error converting image: {}".format(e))
@@ -56,7 +64,7 @@ def main():
         # ros_image = bridge.cv2_to_imgmsg(frame, encoding="bgr8")
         # pub.publish(ros_image)
 
-        rate.sleep()
+        # rate.sleep()
 
     cap.release()
 
