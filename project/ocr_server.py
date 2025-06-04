@@ -8,7 +8,7 @@ import easyocr
 from queue import Queue, Full
 
 OCR_QUEUE_MAX = 10
-NUM_WORKERS = 1
+NUM_WORKERS = 3
 
 def recvall(conn, length):
     data = b''
@@ -55,11 +55,11 @@ class OcrServer:
                 img_len = struct.unpack('>I', raw_len)[0]
                 img_data = recvall(self.conn, img_len)
                 img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
-                
+
                 if self.a == 0:
                     self.a = 1
                     print(f"image data: {img}")
-                
+
                 if img is None:
                     print("[OCR Server] Failed to decode image")
                     continue
@@ -77,19 +77,19 @@ class OcrServer:
             img = self.queue.get()
             if self.b == 0:
                 self.b = 1
-                print(f"image data from q: {img}")
+                # print(f"image data from q: {img}")
 
             try:
                 results = self.reader.readtext(img)
                 # print(f"[OCR] Found {results} text regions")
 
                 for bbox, text, conf in results:
-                    print(f"[OCR] {text} ({conf:.2f})")
-                    encoded_text = text.encode('utf-8')
-                    text_len = struct.pack('>I', len(encoded_text))
-                    self.conn.sendall(text_len + encoded_text)
+                    if conf > 0.6:
+                        print(f"[OCR] {text} ({conf:.2f})")
+                        encoded_text = text.encode('utf-8')
+                        text_len = struct.pack('>I', len(encoded_text))
+                        self.conn.sendall(text_len + encoded_text)
 
-                    if conf > 0.5:
                         # print(f"[OCR {round(conf,2)}] {text}")
                         top_left = tuple(map(int, bbox[0]))
                         bottom_right = tuple(map(int, bbox[2]))
@@ -108,7 +108,7 @@ class OcrServer:
                 print(f"[OCR] ocr_worker error: {e}")
             finally:
                 self.queue.task_done()
-    
+
     def run_ui(self):
         cv2.namedWindow("OCR Preview", cv2.WINDOW_NORMAL)
         while True:
