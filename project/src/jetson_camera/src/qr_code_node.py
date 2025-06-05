@@ -130,7 +130,7 @@ class QRCodeNode:
                         center_width = w / 2
 
                         # Get max coordinates of the QR code
-                        rospy.loginfo("QR code points: {}".format(points))
+                        # rospy.loginfo("QR code points: {}".format(points))
                         x_coordinates = points[:, 0]
 
                         # Calculate the center of the QR code
