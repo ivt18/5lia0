@@ -5,7 +5,7 @@ class CarConfig:
 
 
 class Position:
-    def __init__(self, x, y, angle):
+    def __init__(self, x=0, y=0, angle=0):
         self.x = x
         self.y = y
         self.theta = angle
