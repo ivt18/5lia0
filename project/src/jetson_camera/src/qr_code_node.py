@@ -163,9 +163,8 @@ class QRCodeNode:
         object_x = (np.max(x_coordinates) + np.min(x_coordinates)) / 2
 
         error_x = object_x - center_x
-        rospy.loginfo("error_x: %s", error_x)
         
-        angle = kp * error_x
+        angle = kp * error_x * 180.0 / np.pi  # Convert to degrees
 
         self.send_relative_command(True, angle)
 
