@@ -48,22 +48,22 @@ class FusionNode:
         # Create a MovementRequest message
         msg = MovementRequest()
 
-        if qr_offset < -0.5: # Rotate left
+        if qr_offset < -0.25: # Rotate left
             rospy.loginfo("Rotating left with measured offset: %d", qr_offset)
             msg.request_type = 2
             msg.value = -0.1
 
-        elif qr_offset > 0.5: # Rotate right
+        elif qr_offset > 0.25: # Rotate right
             rospy.loginfo("Rotating right with measured offset: %d", qr_offset)
             msg.request_type = 2
             msg.value = 0.1
 
-        elif qr_distance < 0.01: # Move forward
+        elif qr_distance < 0.001: # Move forward
             rospy.loginfo("Moving forward with measured distance: %f", qr_distance)
             msg.request_type = 1
             msg.value = 0.1
         
-        elif qr_distance > 0.01: # Move backward
+        elif qr_distance > 0.001: # Move backward
             rospy.loginfo("Moving backward with measured distance: %f", qr_distance)
             msg.request_type = 1
             msg.value = -0.1

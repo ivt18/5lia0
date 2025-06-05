@@ -95,11 +95,11 @@ class QRCodeNode:
 
         rospy.loginfo("QR code follow, offset: {}, distance: {}".format(offset_width, distance))
 
-        msg = QRTrackingInfo()
-        msg.found = found
-        msg.offset = offset_width
-        msg.distance = distance
-        self.publisher.publish(msg)
+        # msg = QRTrackingInfo()
+        # msg.found = found
+        # msg.offset = offset_width
+        # msg.distance = distance
+        # self.publisher.publish(msg)
 
     def image_cb(self, data):
         if not self.initialized:
