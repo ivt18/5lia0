@@ -73,47 +73,7 @@ class ReceiverNode:
         self.current_position.theta = data.theta
 
 
-    def position_estimation_relative(self,
-        relative_position, R, wheelbase,
-        delta_phi_left, delta_phi_right):
-        """
-        Calculate the current Duckiebot position using the dead-reckoning model.
-
-        Args:
-            relative_position:  base position to compute estimation with respect to
-            R:                  wheel radius (assume both wheels are of the same radius)
-            wheelbase:          vehicle wheelbase
-            delta_phi_left:     left wheel rotation (rad)
-            delta_phi_right:    right wheel rotation (rad)
-
-        Return:
-            estimation:         Position object containing estimated x, y and heading
-        """
-
-        estimation = Position(0, 0, 0)
-
-        d_left = R * delta_phi_left
-        d_right = R * delta_phi_right
-        delta_theta = (d_right - d_left) / wheelbase
-        estimation.theta = relative_position.theta + delta_theta
-
-        delta_dist = (d_left + d_right) / 2
-        delta_x = delta_dist * np.cos(estimation.theta)
-        delta_y = delta_dist * np.sin(estimation.theta)
-
-        estimation.x = relative_position.x + delta_x
-        estimation.y = relative_position.y + delta_y
-
-        return estimation
-
-
-    def receiveRequest(self, data):
-        if not self.initialized:
-            return
-
-        rospy.loginfo("Received request of type {} with value {}".format(data.request_type, data.value))
-
-        request = datatypes.MovementRequest(data.request_type, data.value)
+    def processRequest(self, request):
         target_position = datatypes.Position(0, 0, 0)
         mult_left = 1.0
         mult_right = 1.0
@@ -158,6 +118,19 @@ class ReceiverNode:
             else: # turn left
                 mult_right += float(request.value) / np.pi
 
+
+        return target_position, mult_left, mult_right
+
+
+    def receiveRequest(self, data):
+        if not self.initialized:
+            return
+
+        rospy.loginfo("Received request of type {} with value {}".format(data.request_type, data.value))
+
+        request = datatypes.MovementRequest(data.request_type, data.value)
+        target_position mult_left, mult_right = self.processRequest(request)
+
         left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
         right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
 
@@ -171,18 +144,18 @@ class ReceiverNode:
             current_distance = prev_distance
             while (current_distance > 0.03 and current_distance < prev_distance + 0.01): # 3 cm tolerance
                 rospy.loginfo("%f %f", self.current_position.x, self.current_position.y)
+                rospy.Rate(20).sleep
                 prev_distance = current_distance
                 current_distance = self.getDistanceTo(target_position)
-                rospy.Rate(20).sleep
 
         if (request.request_type == datatypes.MovementRequest.TURN_REQUEST):
             prev_rotation = np.abs(self.getRotationTo(target_position))
             current_rotation = prev_rotation
             while (current_rotation > 0.03 and current_rotation < prev_rotation + 0.01): # 0.1 rad tolerance
                 rospy.loginfo("%f", self.current_position.theta)
+                rospy.Rate(20).sleep
                 prev_rotation = current_rotation
                 current_rotation = np.abs(self.getRotationTo(target_position))
-                rospy.Rate(20).sleep
 
         if (request.request_type == datatypes.MovementRequest.WIDE_TURN_REQUEST):
             current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
@@ -190,9 +163,9 @@ class ReceiverNode:
 
             while (current_delta_rotation > 0.03 and current_delta_rotation < prev_delta_rotation + 0.01): # 0.1 rad tolerance
                 rospy.loginfo("%f", self.current_position.theta)
+                rospy.Rate(20).sleep
                 prev_delta_rotation = current_delta_rotation
                 current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
-                rospy.Rate(20).sleep
 
         rospy.loginfo("Arrived at target destination")
 

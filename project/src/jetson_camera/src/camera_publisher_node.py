@@ -22,7 +22,6 @@ class CameraPublisherNode:
 
         # Create a CvBridge object for converting images
         self.bridge = CvBridge()
-
         # Camera Dimensions And Properties Parameters
         config = self.load_yaml()
 
@@ -30,15 +29,12 @@ class CameraPublisherNode:
         self.width = config["width"]
         self.height = config["height"]
         self.fps = config["fps"]
-        
         # GStreamer pipeline for the Jetson CSI camera
         self.pipeline = self.gstreamer_pipeline()
         if self.pipeline is None:
             rospy.logerr("Pipeline could not be initialized!")
-
         # OpenCV video capture with the GStreamer pipeline
         self.cap = cv2.VideoCapture(self.pipeline, cv2.CAP_GSTREAMER)
-
         if not self.cap.isOpened():
             rospy.logerr("Unable to open camera")
 

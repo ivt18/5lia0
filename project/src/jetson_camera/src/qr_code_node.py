@@ -89,17 +89,16 @@ class QRCodeNode:
 
         rospy.loginfo("Sent command to controller: found = {}, data = {}".format(found, data))
 
-    def send_relative_command(self, found, offset_width=0, distance=0):
+    def send_relative_command(self, found, angle=0):
         if not self.initialized:
             return
 
-        rospy.loginfo("QR code follow, offset: {}, distance: {}".format(offset_width, distance))
+        rospy.loginfo("QR code follow, angle: {}".format(angle))
 
-        # msg = QRTrackingInfo()
-        # msg.found = found
-        # msg.offset = offset_width
-        # msg.distance = distance
-        # self.publisher.publish(msg)
+        msg = QRTrackingInfo()
+        msg.found = found
+        msg.angle = angle
+        self.publisher.publish(msg)
 
     def image_cb(self, data):
         if not self.initialized:
@@ -127,23 +126,11 @@ class QRCodeNode:
                     if (retval == "follow"):
                         # Find location of the QR code
                         h, w = undistorted_image.shape[:2]
-                        center_width = w / 2
 
                         # Get max coordinates of the QR code
                         # rospy.loginfo("QR code points: {}".format(points))
-                        x_coordinates = points[:, 0]
 
-                        # Calculate the center of the QR code
-                        qr_center_width = (np.max(x_coordinates) + np.min(x_coordinates)) / 2
-
-                        # Calculate QRCode offset from the center
-                        offset_width = (qr_center_width - center_width) / center_width
-
-                        # Calculate distance to the QR code based on its width
-                        qr_width = np.max(points[:, 0]) - np.min(points[:, 0])
-                        distance = 0.5 / qr_width
-
-                        self.send_relative_command(True, offset_width, distance)
+                        self.track_object(w, points)
                     else:
                         # Drive forward if QR code detected
                         self.send_command(True, data=retval)
@@ -167,6 +154,20 @@ class QRCodeNode:
 
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
+
+    def track_object(self, img_w, points, kp=0.05):
+        center_x = img_w / 2
+
+        # Calculate the center of the QR code
+        x_coordinates = points[:, 0]
+        object_x = (np.max(x_coordinates) + np.min(x_coordinates)) / 2
+
+        error_x = object_x - center_x
+        rospy.loginfo("error_x: %s", error_x)
+        
+        angle = kp * error_x
+
+        self.send_relative_command(True, angle)
 
 
 if __name__ == "__main__":
