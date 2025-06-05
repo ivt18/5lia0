@@ -41,14 +41,14 @@ class QRCodeNode:
         # Create QR Code Reader
         self.qr_code_detector = cv2.QRCodeDetector()
 
-        # Save as video
-        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video = cv2.VideoWriter(
-            "/home/jetbot/EVC/5lia0/project/video_qr_code.avi",
-            self.fourcc,
-            15.0,
-            (1280, 480)
-        )
+        # # Save as video
+        # self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # self.video = cv2.VideoWriter(
+        #     "/home/jetbot/EVC/5lia0/project/video_qr_code.avi",
+        #     self.fourcc,
+        #     15.0,
+        #     (1280, 480)
+        # )
 
         self.first_image_received = False
         self.initialized = True
@@ -119,9 +119,9 @@ class QRCodeNode:
                 
                 # Check if a QR code was detected
                 if retval:
-                    # Display the decoded data from the QR code
-                    cv2.putText(undistorted_image, retval, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                    cv2.polylines(undistorted_image, [points.astype(int)], isClosed=True, color=(0, 255, 0), thickness=2)
+                    # # Display the decoded data from the QR code
+                    # cv2.putText(undistorted_image, retval, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    # cv2.polylines(undistorted_image, [points.astype(int)], isClosed=True, color=(0, 255, 0), thickness=2)
 
                     if (retval == "follow"):
                         # Find location of the QR code
@@ -135,21 +135,21 @@ class QRCodeNode:
                         # Drive forward if QR code detected
                         self.send_command(True, data=retval)
                 else:
-                    # Display if no QR code was detected
-                    cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    # # Display if no QR code was detected
+                    # cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
                     # Send command that no QR code was found
                     self.send_relative_command(False)
 
-                # Save the video
-                resized_good = cv2.resize(undistorted_image, (640, 480))
-                resized_raw = cv2.resize(cv_image_raw, (640, 480))
+                # # Save the video
+                # resized_good = cv2.resize(undistorted_image, (640, 480))
+                # resized_raw = cv2.resize(cv_image_raw, (640, 480))
 
-                combi = cv2.hconcat([resized_good, resized_raw])
+                # combi = cv2.hconcat([resized_good, resized_raw])
                 
-                self.video.write(combi)
+                # self.video.write(combi)
 
-                cv2.waitKey(1)  # Keep at 1 to prevent blocking
+                # cv2.waitKey(1)  # Keep at 1 to prevent blocking
 
 
         except CvBridgeError as err:
