@@ -155,7 +155,7 @@ class QRCodeNode:
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
 
-    def track_object(self, img_w, points, kp=0.05):
+    def track_object(self, img_w, points, kp=-0.00327):
         center_x = img_w / 2
 
         # Calculate the center of the QR code
@@ -165,6 +165,11 @@ class QRCodeNode:
         error_x = object_x - center_x
         
         angle = kp * error_x * 180.0 / np.pi  # Convert to degrees
+        
+        if angle > 180:
+            angle -= 360
+        elif angle < -180:
+            angle += 360
 
         self.send_relative_command(True, angle)
 
