@@ -14,6 +14,7 @@ add_message_files(
   FILES
   ProcessedImages.msg
   QRTrackingInfo.msg
+  ObjectTrackingInfo.msg
 )
 
 # Generate messages
@@ -43,5 +44,6 @@ catkin_install_python(PROGRAMS
   src/camera_subscriber_node.py
   src/img_processor_node.py
   src/qr_code_node.py
+  src/object_tracker_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
