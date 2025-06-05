@@ -29,7 +29,7 @@ class ObjectTrackerNode:
         self.sub_image = rospy.Subscriber(
             "/camera/image_processed",
             ProcessedImages,
-            self.process_image,
+            self.callback,
             buff_size=2**24,
             queue_size=1,
         )
@@ -54,6 +54,21 @@ class ObjectTrackerNode:
         self.target_class = "rc_car"
         self.w = 0
         self.h = 0
+        self.data = None
+        self.spin()
+
+    def callback(self, data):
+        self.data = data
+
+    def spin(self):
+        rate = rospy.Rate(30)  # 30 Hz
+        while not rospy.is_shutdown():
+            if self.data is not None:
+                self.process_image(self.data)
+            rate.sleep()
+
+        # Cleanup
+        cv2.destroyAllWindows()
 
     def process_image(self, data):
         if not self.initialized:
@@ -138,17 +153,18 @@ class ObjectTrackerNode:
                 2,
             )
         cv2.imshow("tracked object", frame)
-        cv2.waitKey(1)           # Waits indefinitely for a key press
+        cv2.waitKey(1) 
         return frame
 
     def track_object(self, img_w, x, y, w, h):
-        kp = 0.05
+        kp = -0.00327
         center_x = img_w / 2
         object_x = x + w/2
         error_x = object_x - center_x
-        rospy.loginfo("error_x: %s", error_x)
-        
-        angle = kp * error_x
+       
+
+        angle = (kp * error_x) * 360 / (2 * np.pi)
+        rospy.loginfo("angle: %s", angle)
 
         msg = ObjectTrackingInfo()
         msg.found = True
@@ -221,9 +237,8 @@ class ObjectTrackerNode:
 if __name__ == "__main__":
     # Initialize the node
     rospy.init_node("processing_node", anonymous=True)
-    object_tracker_node = ObjectTrackerNode()
     try:
-        rospy.spin()
+      object_tracker_node = ObjectTrackerNode()
     except KeyboardInterrupt:
         rospy.loginfo("Shutting down image processor node.")
     finally:
