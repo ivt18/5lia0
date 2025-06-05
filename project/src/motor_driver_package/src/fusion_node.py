@@ -46,15 +46,10 @@ class FusionNode:
         # Create a MovementRequest message
         msg = MovementRequest()
 
-        if qr_angle < -0.1: # Rotate left
-            rospy.loginfo("Rotating left with measured angle: %d", qr_angle)
+        if abs(qr_angle) > 0.1: # Rotate
+            rospy.loginfo("Rotating with measured angle: %d", qr_angle)
             msg.request_type = 2
-            msg.value = -0.05
-
-        elif qr_angle > 0.1: # Rotate right
-            rospy.loginfo("Rotating right with measured angle: %d", qr_angle)
-            msg.request_type = 2
-            msg.value = 0.05
+            msg.value = -qr_angle / 90.0
 
         else: # Ignore
             return
