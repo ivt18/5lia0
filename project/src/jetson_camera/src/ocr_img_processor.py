@@ -99,6 +99,7 @@ class OcrCompressedNode:
             rospy.signal_shutdown("Failed to connect to OCR server.")
             return
 
+        self.s = self.setup_connection()
         self.message_rate = rospy.Rate(10)
 
         self.commands_history = CommandHistory()
