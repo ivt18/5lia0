@@ -33,7 +33,7 @@ class OcrServer:
         print(f"[OCR] Client connected from {addr}")
 
         # Bounded queue to smooth out bursts
-        self.queue = Queue(maxsize=OCR_QUEUE_MAX)
+        self.queue: Queue[cv2.typing.MatLike] = Queue(maxsize=OCR_QUEUE_MAX)
         self.ocr_queue = Queue(maxsize=OCR_QUEUE_MAX)
 
         # Thread: receive & enqueue
@@ -75,12 +75,17 @@ class OcrServer:
     def ocr_worker(self):
         while True:
             img = self.queue.get()
-            if self.b == 0:
-                self.b = 1
-                # print(f"image data from q: {img}")
+            height, width, _ = img.shape
+
+            # TODO: adjust based on testing, 2/3 seems too small
+            crop_y_start = height // 5
+            cropped_img = img[crop_y_start:, :]
+
+            # add horizontal like where detection starts
+            cv2.line(img, (0, crop_y_start), (width, crop_y_start), (0, 255, 0), 2)
 
             try:
-                results = self.reader.readtext(img)
+                results = self.reader.readtext(cropped_img, allowlist='stopSTOP')
                 # print(f"[OCR] Found {results} text regions")
 
                 for bbox, text, conf in results:
@@ -90,9 +95,10 @@ class OcrServer:
                         text_len = struct.pack('>I', len(encoded_text))
                         self.conn.sendall(text_len + encoded_text)
 
-                        # print(f"[OCR {round(conf,2)}] {text}")
-                        top_left = tuple(map(int, bbox[0]))
-                        bottom_right = tuple(map(int, bbox[2]))
+                        # account for cropping
+                        adjusted_bbox = [ (int(pt[0]), int(pt[1] + crop_y_start)) for pt in bbox ]
+                        top_left = adjusted_bbox[0]
+                        bottom_right = adjusted_bbox[2]
 
                         cv2.rectangle(img, top_left, bottom_right, (0, 255, 0), 2)
                         cv2.putText(img, text, (top_left[0], top_left[1] - 10),
