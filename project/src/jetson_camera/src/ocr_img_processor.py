@@ -18,7 +18,7 @@ from std_msgs.msg import Bool
 
 # TODO: make this a parameter/config file entry
 ocr_server_ip = "192.168.0.48"
-consensus_threshold = 5
+consensus_threshold = 3  # how many times a command must be seen before it is considered valid
 
 class CommandDecoder:
     AVAILABLE_COMMANDS = ["STOP"]
@@ -91,10 +91,8 @@ class OcrCompressedNode:
         self.initialized = False
         rospy.init_node('ocr_node', anonymous=True)
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
-        self.s = socket.socket()
-        self.s.connect((ocr_server_ip, 9999))
-        rospy.loginfo("Connected to socket server.")
 
+        self.s = self.setup_connection()
         self.message_rate = rospy.Rate(10)
 
         self.commands_history = CommandHistory()
@@ -132,6 +130,24 @@ class OcrCompressedNode:
         rospy.on_shutdown(self.shutdown_hook)
         rospy.spin()
 
+    # TODO: make oocr server configurable from roslaunch
+    def setup_connection(self, max_retries = None):
+        retries = 0
+        while not rospy.is_shutdown():
+            try:
+                s = socket.socket()
+                s.connect((ocr_server_ip, 9999))
+                rospy.loginfo("Connected to OCR server.")
+
+                return s
+            except socket.error as e:
+                rospy.logerr("Connection to OCR serverfailed: {}".format(e))
+                retries += 1
+                if max_retries is not None and retries >= max_retries:
+                    rospy.signal_shutdown("Failed to connect to server after {} retries.".format(retries))
+                    raise Exception("Max retries reached. Server not available.")
+
+                rospy.sleep(rospy.Duration(5))
 
     def watch_history(self):
         rospy.loginfo("in watch history")
@@ -180,6 +196,7 @@ class OcrCompressedNode:
 
     def receive_text(self):
         print("in receive text")
+
         while not rospy.is_shutdown():
             raw_len = self.recvall(4)
             if not raw_len:
@@ -193,7 +210,7 @@ class OcrCompressedNode:
             try:
                 self.response_queue.put_nowait(detected_text)
             except Queue.Full:
-                rospy.loginfo("queue is full")
+                rospy.loginfo("[OCR] ocr detection queue is full")
                 pass
 
         print("reeive text cleanup")
