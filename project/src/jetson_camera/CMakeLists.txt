@@ -27,7 +27,7 @@ generate_messages(
 
 # Declare a catkin package
 catkin_package(
-  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs motor_driver_package
+  CATKIN_DEPENDS message_runtime std_msgs sensor_msgs 
 )
 
 # Include directories
