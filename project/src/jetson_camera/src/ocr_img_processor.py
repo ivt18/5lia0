@@ -16,8 +16,6 @@ from levenshtein import levenshtein
 import math
 from std_msgs.msg import Bool
 
-# TODO: make this a parameter/config file entry
-ocr_server_ip = "192.168.0.48"
 consensus_threshold = 3  # how many times a command must be seen before it is considered valid
 
 class CommandDecoder:
@@ -87,12 +85,20 @@ class CommandHistory:
 
 
 class OcrCompressedNode:
-    def __init__(self):
+    def __init__(self, ocr_server_address):
         self.initialized = False
+        # a tuple (ip, port) for the OCR server
+        self.ocr_server_address = ocr_server_address
         rospy.init_node('ocr_node', anonymous=True)
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
 
         self.s = self.setup_connection()
+
+        if not self.s:
+            rospy.logerr("Failed to connect to OCR server. Shutting down node.")
+            rospy.signal_shutdown("Failed to connect to OCR server.")
+            return
+
         self.message_rate = rospy.Rate(10)
 
         self.commands_history = CommandHistory()
@@ -128,7 +134,6 @@ class OcrCompressedNode:
         self.initialized = True
 
         rospy.on_shutdown(self.shutdown_hook)
-        rospy.spin()
 
     # TODO: make oocr server configurable from roslaunch
     def setup_connection(self, max_retries = None):
@@ -136,7 +141,7 @@ class OcrCompressedNode:
         while not rospy.is_shutdown():
             try:
                 s = socket.socket()
-                s.connect((ocr_server_ip, 9999))
+                s.connect(self.ocr_server_address)
                 rospy.loginfo("Connected to OCR server.")
 
                 return s
@@ -226,10 +231,23 @@ class OcrCompressedNode:
 
 if __name__ == '__main__':
     ocr_node = None
+    ocr_server_ip = rospy.get_param("ocr_server_ip", "")
+    ocr_server_port = rospy.get_param("ocr_server_port", 9999)
+    print("Loaded OCR node parameters: IP = {}, Port = {}"
+                  .format(
+                      ocr_server_ip,
+                      ocr_server_port
+                      ))
+
+    if ocr_server_ip == "":
+        print("OCR server IP not set. Please set the parameter 'ocr_server_ip' in the launch file or parameter server.")
+        raise ValueError("OCR server IP not set.")
+
     try:
-        ocr_node = OcrCompressedNode()
+        ocr_node = OcrCompressedNode((ocr_server_ip, ocr_server_port))
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
-        # while not rospy.is_shutdown():
+        rospy.spin()
+
     except rospy.ROSInterruptException:
         pass
     finally:
