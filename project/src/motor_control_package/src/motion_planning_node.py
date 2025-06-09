@@ -55,7 +55,7 @@ class MotionPlanningNode:
 
         # Construct publisher
         self.publisher = rospy.Publisher(
-            "motor-control/motion-planning",
+            "/motor_control/motion_planning",
             MovementRequest,
             queue_size=1,
         )

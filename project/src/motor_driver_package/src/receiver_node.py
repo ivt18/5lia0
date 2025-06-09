@@ -3,12 +3,12 @@
 import numpy as np
 import rospy
 
-from motor_driver_package.msg import MovementRequest
-from motor_driver_package.msg import MotorSpeedRequest, Position
+from motor_driver_package.msg import MotorSpeedRequest, MovementRequest
 
 from config import get_car_config, get_motor_calibration_config
-#from datatypes import MovementRequest, Position
 import datatypes
+
+PROPORTIONAL_GAIN = 5
 
 class ReceiverNode:
 
@@ -21,7 +21,6 @@ class ReceiverNode:
 
         self.config = get_car_config()
         self.motor_calibration = get_motor_calibration_config()
-        self.current_position = datatypes.Position(0, 0, 0)
 
         # Construct publisher
         self.publisher = rospy.Publisher(
@@ -32,18 +31,9 @@ class ReceiverNode:
 
         # Construct subscribers
         self.commands_subscriber = rospy.Subscriber(
-            "/motor_driver/commands",
+            "/motor_control/motion_planning",
             MovementRequest,
             self.receiveRequest,
-            #Change buff size and queue size accordingly
-            buff_size=1000000,
-            queue_size=10
-        )
-
-        self.position_subscriber = rospy.Subscriber(
-            "/motor_driver/position",
-            Position,
-            self.receivePosition,
             #Change buff size and queue size accordingly
             buff_size=1000000,
             queue_size=10
@@ -53,84 +43,14 @@ class ReceiverNode:
         rospy.loginfo("Receiver node initialized!")
 
 
-    # get the distance from the robot's current position to a target position
-    def getDistanceTo(self, position):
-        start_vector = np.array([self.current_position.x, self.current_position.y])
-        target_vector = np.array([position.x, position.y])
-        return np.linalg.norm(target_vector - start_vector)
-
-
-    def getRotationTo(self, position):
-        return position.theta - self.current_position.theta;
-
-
-    def receivePosition(self, data):
-        if not self.initialized:
-            return
-
-        self.current_position.x = data.x
-        self.current_position.y = data.y
-        self.current_position.theta = data.theta
-
-
-    def processRequest(self, request):
-        target_position = datatypes.Position(0, 0, 0)
-        mult_left = 1.0
-        mult_right = 1.0
-        
-        if (request.request_type == datatypes.MovementRequest.MOVEMENT_REQUEST):
-            delta_req = float(data.value) / float(self.config.wheel_radius) # radians
-
-            if (delta_req < 0):
-                mult_left = -1
-                mult_right = -1
-
-            target_position = self.position_estimation_relative(
-                self.current_position,
-                self.config.wheel_radius,
-                self.config.wheelbase,
-                delta_req, delta_req)
-        
-        if (request.request_type == datatypes.MovementRequest.TURN_REQUEST):
-            delta_left = 0 # radians
-            delta_right = 0 # radians
-            distance = request.value * self.config.wheelbase # meters, arch length
-
-            # for some reason these deltas should have their signs flipped
-            # TODO: potential bug with position estimator
-            if (distance < 0):
-                mult_left = 0
-                delta_right = -(distance / self.config.wheel_radius)
-            else:
-                mult_right = 0
-                delta_left = distance / self.config.wheel_radius
-
-            target_position = self.position_estimation_relative(
-                self.current_position,
-                self.config.wheel_radius,
-                self.config.wheelbase,
-                delta_left, delta_right)
-
-        if (request.request_type == datatypes.MovementRequest.WIDE_TURN_REQUEST):
-            target_rotation = self.current_position.theta + request.value
-            if (request.value < 0): # turn right
-                mult_left -= float(request.value) / np.pi
-            else: # turn left
-                mult_right += float(request.value) / np.pi
-
-
-        return target_position, mult_left, mult_right
-
-
     def receiveRequest(self, data):
         if not self.initialized:
             return
 
-        rospy.loginfo("Received request of type {} with value {}".format(data.request_type, data.value))
+        rospy.loginfo("RECEIVED A REQUEST!!!!")
 
-        request = datatypes.MovementRequest(data.request_type, data.value)
-        target_position mult_left, mult_right = self.processRequest(request)
-
+        mult_left = float(data.v) + self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
+        mult_right = float(data.v) - self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
         left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
         right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
 
@@ -138,41 +58,6 @@ class ReceiverNode:
         motor_request.speed_left_wheel = left
         motor_request.speed_right_wheel = right
         self.publisher.publish(motor_request)
-
-        if (request.request_type == datatypes.MovementRequest.MOVEMENT_REQUEST):
-            prev_distance = self.getDistanceTo(target_position)
-            current_distance = prev_distance
-            while (current_distance > 0.03 and current_distance < prev_distance + 0.01): # 3 cm tolerance
-                rospy.loginfo("%f %f", self.current_position.x, self.current_position.y)
-                rospy.Rate(20).sleep
-                prev_distance = current_distance
-                current_distance = self.getDistanceTo(target_position)
-
-        if (request.request_type == datatypes.MovementRequest.TURN_REQUEST):
-            prev_rotation = np.abs(self.getRotationTo(target_position))
-            current_rotation = prev_rotation
-            while (current_rotation > 0.03 and current_rotation < prev_rotation + 0.01): # 0.1 rad tolerance
-                rospy.loginfo("%f", self.current_position.theta)
-                rospy.Rate(20).sleep
-                prev_rotation = current_rotation
-                current_rotation = np.abs(self.getRotationTo(target_position))
-
-        if (request.request_type == datatypes.MovementRequest.WIDE_TURN_REQUEST):
-            current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
-            prev_delta_rotation = current_delta_rotation
-
-            while (current_delta_rotation > 0.03 and current_delta_rotation < prev_delta_rotation + 0.01): # 0.1 rad tolerance
-                rospy.loginfo("%f", self.current_position.theta)
-                rospy.Rate(20).sleep
-                prev_delta_rotation = current_delta_rotation
-                current_delta_rotation = np.abs(target_rotation - self.current_position.theta)
-
-        rospy.loginfo("Arrived at target destination")
-
-        stop_request = MotorSpeedRequest()
-        stop_request.speed_left_wheel = 0
-        stop_request.speed_right_wheel = 0
-        self.publisher.publish(stop_request)
 
 
 if __name__ == "__main__":

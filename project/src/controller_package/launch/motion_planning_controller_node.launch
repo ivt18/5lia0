@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="controller_package" type="motion_planning_controller_node.py" name="motion_planning_controller_node" output="screen">
+  </node>
+</launch>

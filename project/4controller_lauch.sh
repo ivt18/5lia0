@@ -1,0 +1,2 @@
+source devel/setup.sh
+roslaunch controller_package motion_planning_controller_node.launch

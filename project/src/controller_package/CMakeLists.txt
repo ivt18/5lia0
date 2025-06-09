@@ -36,6 +36,6 @@ install(DIRECTORY launch/
 
 # Install Python scripts
 catkin_install_python(PROGRAMS
-  src/controller_node.py
+  src/motion_planning_controller_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

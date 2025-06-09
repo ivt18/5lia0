@@ -3,5 +3,4 @@
   <node pkg="motor_driver_package" type="fusion_node.py" name="fusion_node" output="screen"></node>
   <node pkg="motor_driver_package" type="encoder_reader_node.py" name="encoder_reader_node" output="screen"></node>
   <node pkg="motor_driver_package" type="motor_driver_node.py" name="motor_driver_node" output="screen"></node>
-  <node pkg="motor_driver_package" type="position_estimator_node.py" name="position_estimator_node" output="screen"></node>
 </launch>

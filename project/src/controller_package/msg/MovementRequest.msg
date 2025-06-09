@@ -1,2 +1,2 @@
-uint8 request_type
-float32 value
+float64 v
+float64 angle

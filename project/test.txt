@@ -1,0 +1,6 @@
+[    4.896252] imx219 7-0010: tegracam sensor driver:imx219_v2.0.6
+[    4.919661] imx219 7-0010: imx219_board_setup: error during i2c read probe (-121)
+[    4.919691] imx219 7-0010: board setup failed
+[    4.919791] imx219: probe of 7-0010 failed with error -121
+[    4.920357] imx219 8-0010: tegracam sensor driver:imx219_v2.0.6
+[    5.108051] vi 54080000.vi: subdev imx219 8-0010 bound

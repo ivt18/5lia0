@@ -1,6 +1,6 @@
 motor-calibration:
     gain: 0.2
-    trim: 0.03
+    trim: -0.03
 wheelbase: 0.17
 wheel_radius: 0.032
 wheel-encoder:

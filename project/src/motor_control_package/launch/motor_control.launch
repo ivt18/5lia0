@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="motor_control_package" type="position_estimator_node.py" name="position estimator node" output="screen">
+  <node pkg="motor_control_package" type="motion_planning_node.py" name="motion planning node" output="screen">
+  </node>
+</launch>
