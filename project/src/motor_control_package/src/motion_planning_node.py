@@ -46,7 +46,7 @@ class MotionPlanningNode:
         )
 
         self.lidar = rospy.Subscriber(
-            "/tof/distance",
+            "/motor_control/tof",
             UInt16,
             self.read_tof,
             buff_size=10,

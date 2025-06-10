@@ -3,6 +3,7 @@
 import numpy as np
 import rospy
 
+from std_msgs.msg import Bool
 from motor_driver_package.msg import MotorSpeedRequest, MovementRequest
 
 from config import get_car_config, get_motor_calibration_config
@@ -21,6 +22,7 @@ class ReceiverNode:
 
         self.config = get_car_config()
         self.motor_calibration = get_motor_calibration_config()
+        self.safety_state = datatypes.StopGo.GO
 
         # Construct publisher
         self.publisher = rospy.Publisher(
@@ -39,20 +41,34 @@ class ReceiverNode:
             queue_size=10
         )
 
+        self.safety_subscriber = rospy.Subscriber(
+            "/safety/stop_go",
+            Bool,
+            self.safety_cb,
+            #Change buff size and queue size accordingly
+            buff_size=1000000,
+            queue_size=10,
+        )
+
         self.initialized = True
         rospy.loginfo("Receiver node initialized!")
+
+
+    def safety_cb(self, data):
+        self.safety_state = StopGo(data.data)
 
 
     def receiveRequest(self, data):
         if not self.initialized:
             return
 
-        rospy.loginfo("RECEIVED A REQUEST!!!!")
-
-        mult_left = float(data.v) + self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
-        mult_right = float(data.v) - self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
-        left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
-        right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
+        left = 0
+        right = 0
+        if self.safety_state == StopGo.GO:
+            mult_left = float(data.v) + self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
+            mult_right = float(data.v) - self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
+            left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
+            right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
 
         motor_request = MotorSpeedRequest()
         motor_request.speed_left_wheel = left

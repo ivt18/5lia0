@@ -20,6 +20,7 @@ class TofNode:
         # Construct publisher
         self.publisher = rospy.Publisher(
             "/tof/distance",
+            UInt16,
             queue_size=1,
         )
 
@@ -44,7 +45,7 @@ class TofNode:
 
         # send message
         self.publisher.publish(msg)
-        rospy.loginfo("Avg distance: {d}".format(d=msg.data))
+        #rospy.loginfo("Avg distance: {d}".format(d=msg.data))
 
     def read_sensor(self, event):
         # read sensor

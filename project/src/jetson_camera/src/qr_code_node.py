@@ -7,7 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from jetson_camera.msg import ProcessedImages
 from motor_driver_package.msg import MovementRequest
-from jetson_camera.msg import QRTrackingInfo
+from jetson_camera.msg import TrackingInfo
 
 class QRCodeNode:
     def __init__(self):
@@ -33,8 +33,8 @@ class QRCodeNode:
 
         # Construct publisher for tracking info
         self.publisher = rospy.Publisher(
-            "/motor_driver/qr_tracking_info",
-            QRTrackingInfo,
+            "/motor_driver/qr_tracking",
+            TrackingInfo,
             queue_size=10,
         )
 
@@ -95,7 +95,7 @@ class QRCodeNode:
 
         rospy.loginfo("QR code follow, angle: {}".format(angle))
 
-        msg = QRTrackingInfo()
+        msg = TrackingInfo()
         msg.found = found
         msg.angle = angle
         self.publisher.publish(msg)
