@@ -29,7 +29,7 @@ class SafetyNode:
         )
 
         self.pedestrian_detection = rospy.Subscriber(
-            "/camera/detection",
+            "/camera/pedestrian",
             Bool,
             self.pedestrian_cb,
             buff_size=10,
@@ -38,7 +38,7 @@ class SafetyNode:
 
         # Construct publishers
         self.publisher = rospy.Publisher(
-            "/motor_driver/commands/stop-go",
+            "/safety/stop_go",
             Bool,
             queue_size=1,
         )

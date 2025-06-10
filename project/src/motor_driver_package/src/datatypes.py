@@ -1,3 +1,8 @@
+#!/usr/env/bin python2
+
+from enum import Enum
+
+
 class CarConfig:
     def __init__(self, radius, wheelbase):
         self.wheel_radius = radius
@@ -24,3 +29,7 @@ class SafetyCarPosition:
         self.distance = d
         self.angle = a
 
+
+class StopGo(Enum):
+    STOP = False 
+    GO = True
