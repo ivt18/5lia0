@@ -1,4 +1,0 @@
-<launch>
-  <node pkg="jetson_camera" type="qr_code_node.py" name="qr_code_node" output="screen"/>
-  <node pkg="jetson_camera" type="object_tracker_node.py" name="object_tracker_node" output="screen"/>
-</launch>
