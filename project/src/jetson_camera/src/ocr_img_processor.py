@@ -15,6 +15,7 @@ import threading
 from levenshtein import levenshtein
 import math
 from std_msgs.msg import Bool
+from collections import deque, Counter
 
 consensus_threshold = 3  # how many times a command must be seen before it is considered valid
 
@@ -46,23 +47,43 @@ class CommandDecoder:
 class CommandHistory:
 
     AVAILABLE_COMMANDS = ["STOP"]
+    UNKNOWN_COMMAND = "UNKNOWN"
 
     def __init__(self):
-        self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
+        # self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
+        # circular buffer of the last 7 commands
+        # add with append(), remove with popleft()
+        self.history = deque(maxlen=7)
         rospy.loginfo("history {}".format(self.history))
+    
+
+    def majority_count(self):
+        """
+        Unless the history is empty, which happens only on the first call, return the most common command in the history.
+        """
+        c = Counter(self.history)
+
+        if len(c) == 0:
+            return None
+
+        return c.most_common(1)[0][0]
+
 
     def add(self, command):
-        if command not in self.AVAILABLE_COMMANDS:
-            rospy.logwarn("unknown command {}".format(command))
+        if command not in self.AVAILABLE_COMMANDS and command != self.UNKNOWN_COMMAND:
+            # this should really noy happen
+            rospy.logerr("[COMMAND HISTORY] unknown command {}".format(command))
             return
 
-        self.history[command] = self.history[command] + 1
+        # self.history[command] = self.history[command] + 1
         # rospy.loginfo("added 1 to command: {}. Current value: {}".format(command, self.history[command]))
+        self.history.append(command)
 
-        if self.history[command] > consensus_threshold:
-            return command
-        else:
-            return None
+        # if self.history[command] > consensus_threshold:
+        #     return command
+        # else:
+        #     return None
+
 
     def guess(self, potential_command):
         potential_command = potential_command.upper()
@@ -80,8 +101,11 @@ class CommandHistory:
         rospy.logerr("guess {} did not match any command".format(potential_command
                                                                 ))
 
+        return self.add(self.UNKNOWN_COMMAND)
+
     def reset(self):
-        self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
+        # self.history = {cmd:0 for cmd in self.AVAILABLE_COMMANDS}
+        self.history.clear()
 
 
 class OcrCompressedNode:
@@ -161,16 +185,20 @@ class OcrCompressedNode:
             possible_command = self.response_queue.get()
             # rospy.loginfo("received possible command {}".format(possible_command))
 
-            consensus = self.commands_history.guess(possible_command)
+            self.commands_history.guess(possible_command)
+            consensus = self.commands_history.majority_count()
 
+            if consensus is None:
+                rospy.loginfo("no consensus reached yet")
+                continue
 
             comm = self.command_decoder.create_command_request(consensus)
             # rospy.loginfo("command request: {}".format(comm))
             self.commands_pub.publish(comm)
 
-            if consensus is not None:
-                rospy.logwarn("reached consesnus command: {}; will publish".format(consensus))
-                self.commands_history.reset()
+            # if consensus is not None:
+            rospy.logwarn("reached consesnus command: {}; will publish".format(consensus))
+            #     self.commands_history.reset()
 
             self.message_rate.sleep()
 
