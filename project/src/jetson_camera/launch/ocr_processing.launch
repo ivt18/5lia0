@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find jetson_camera)/launch/load_params.launch" />
+    <node name="ocr_node" pkg="jetson_camera" type="ocr_img_processor.py" output="screen" />
+</launch>
+

@@ -2,3 +2,6 @@ sensor_id: 0
 width: 640
 height: 480
 fps: 15
+
+ocr_server_ip: "192.168.8.169"
+ocr_server_port: 9999
