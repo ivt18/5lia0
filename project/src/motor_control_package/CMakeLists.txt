@@ -31,5 +31,6 @@ install(DIRECTORY launch/
 catkin_install_python(PROGRAMS
   src/position_estimator_node.py
   src/motion_planning_node.py
+  src/tof_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

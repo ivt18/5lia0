@@ -14,8 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   ProcessedImages.msg
-  QRTrackingInfo.msg
-  ObjectTrackingInfo.msg
+  TrackingInfo.msg
 )
 
 # Generate messages

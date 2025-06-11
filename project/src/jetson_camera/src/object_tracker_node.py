@@ -4,7 +4,7 @@ import os
 import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
-from jetson_camera.msg import ProcessedImages, ObjectTrackingInfo
+from jetson_camera.msg import ProcessedImages, TrackingInfo
 from sensor_msgs.msg import CompressedImage
 import torch
 
@@ -40,7 +40,7 @@ class ObjectTrackerNode:
         )
 
         self.pub_position = rospy.Publisher(
-            "motor_driver/object_tracking", ObjectTrackingInfo, queue_size=10
+            "motor_driver/object_tracking", TrackingInfo, queue_size=10
         )
 
         self.first_image_received = False
@@ -166,7 +166,7 @@ class ObjectTrackerNode:
         angle = (kp * error_x) * 360 / (2 * np.pi)
         rospy.loginfo("angle: %s", angle)
 
-        msg = ObjectTrackingInfo()
+        msg = TrackingInfo()
         msg.found = True
         msg.angle = angle
         self.pub_position.publish(msg)
