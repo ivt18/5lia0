@@ -66,6 +66,8 @@ class SafetyNode:
         
         signal = data.data
 
+        rospy.loginfo("Received text signal: {signal}".format(signal=StopGo(signal)))
+
         # if we receive a STOP while in GO, this is a new stop sign -> begin stop sequence
         if signal == StopGo.STOP.value and self.stop_sign_state == StopSign.GO:
             self.stop_sign_start = time.time()
@@ -73,6 +75,8 @@ class SafetyNode:
         # if we receive a GO while leaving a STOP, then the STOP sign is no longer visible and we can reset
         elif signal == StopGo.GO.value and self.stop_sign_state == StopSign.LEAVING:
             self.stop_sign_state = StopSign.GO
+        
+        rospy.loginfo("stop sign state: {signal}".format(signal=StopGo(self.stop_sign_state)))
 
 
     def pedestrian_cb(self, data):
