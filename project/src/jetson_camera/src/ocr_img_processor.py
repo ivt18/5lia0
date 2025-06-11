@@ -123,7 +123,7 @@ class OcrCompressedNode:
             rospy.signal_shutdown("Failed to connect to OCR server.")
             return
 
-        self.message_rate = rospy.Rate(10)
+        self.message_rate = rospy.Rate(1)
 
         self.commands_history = CommandHistory()
         self.command_decoder = CommandDecoder()
@@ -182,24 +182,24 @@ class OcrCompressedNode:
         rospy.loginfo("in watch history")
         consensus = None
         while not rospy.is_shutdown():
-            possible_command = self.response_queue.get()
-            # rospy.loginfo("received possible command {}".format(possible_command))
+            consensus = None
+            try:
+                possible_command = self.response_queue.get_nowait()
+                self.commands_history.guess(possible_command)
+                consensus = self.commands_history.majority_count()
 
-            self.commands_history.guess(possible_command)
-            consensus = self.commands_history.majority_count()
-
-            if consensus is None:
-                rospy.loginfo("no consensus reached yet")
-                continue
+            except Queue.Empty:
+                pass
 
             comm = self.command_decoder.create_command_request(consensus)
             rospy.loginfo("command request: {}".format(comm))
             self.commands_pub.publish(comm)
-
-            # if consensus is not None:
             rospy.logwarn("reached consesnus command: {}; will publish".format(consensus))
-            #     self.commands_history.reset()
 
+
+            # if consensus is None:
+            #     rospy.loginfo("no consensus reached yet")
+            #     continue
             self.message_rate.sleep()
 
 
