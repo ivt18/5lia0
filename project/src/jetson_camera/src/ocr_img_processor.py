@@ -193,7 +193,7 @@ class OcrCompressedNode:
                 continue
 
             comm = self.command_decoder.create_command_request(consensus)
-            # rospy.loginfo("command request: {}".format(comm))
+            rospy.loginfo("command request: {}".format(comm))
             self.commands_pub.publish(comm)
 
             # if consensus is not None:
