@@ -85,6 +85,7 @@ class MotionPlanningNode:
         Update the angle to the safety car as seen by the camera
         """
         self.safety_car_position.angle = data.data
+        rospy.loginfo("Safety car angle: {angle}".format(angle=self.safety_car_position.angle))
 
 
     def read_tof(self, data):
