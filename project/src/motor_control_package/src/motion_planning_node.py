@@ -85,7 +85,6 @@ class MotionPlanningNode:
         Update the angle to the safety car as seen by the camera
         """
         self.safety_car_position.angle = data.data
-        rospy.loginfo("Safety car angle: {angle}".format(angle=self.safety_car_position.angle))
 
 
     def read_tof(self, data):
@@ -95,10 +94,11 @@ class MotionPlanningNode:
         self.safety_car.distance = data.distance
 
     
-    def publish(self):
+    def publish(self, event):
         """
         Calculate and publish the required linear and angular velocities to keep up with the safety car
         """
+        rospy.logdebug("Publishing motion planning data...")
         msg = MovementRequest()
 
         # linear velocity
@@ -107,7 +107,7 @@ class MotionPlanningNode:
         msg.v = sc_speed
         
         # angle to the safety car
-        msg.theta = safety_car.angle    # rad
+        msg.theta = safety_car_position.angle    # rad
 
         rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
         self.publisher.publish(msg)
