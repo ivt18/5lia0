@@ -12,7 +12,7 @@ class FusionNode:
         self.initialized = False
         self.node_name = node_name
 
-        rospy.loginfo("Initializing receiver node...")
+        rospy.loginfo("Initializing fusion node...")
         rospy.init_node(self.node_name, anonymous=True)
 
         # Construct subscriber for QR tracking info
