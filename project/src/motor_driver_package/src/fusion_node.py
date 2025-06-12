@@ -2,9 +2,9 @@
 
 import numpy as np
 import rospy
+from std_msgs.msg import Float64
 
 from jetson_camera.msg import TrackingInfo
-from motor_driver_package.msg import MovementRequest
 
 class FusionNode:
 
@@ -41,9 +41,9 @@ class FusionNode:
 
         # Construct publisher
         self.commands_publisher = rospy.Publisher(
-            "/motor_driver/commands",
-            MovementRequest,
-            queue_size=10
+            "/camera/fusion",
+            Float64,
+            queue_size=1
         )
 
         self.initialized = True
@@ -81,16 +81,15 @@ class FusionNode:
 
     def send_command(self, tracking_type):
         # Create a MovementRequest message
-        msg = MovementRequest()
-        msg.request_type = 2
+        msg = Float64()
 
         # QR code tracking
         if tracking_type == "qr" and not self.object_found:
-            msg.value = -self.qr_angle / 90.0
+            msg.data = -self.qr_angle / 90.0
 
         # Object tracking
         elif tracking_type == "object" and not self.qr_found:
-            msg.value = -self.object_angle / 90.0
+            msg.data = -self.object_angle / 90.0
         
         # Determine best tracking method
         else:
@@ -105,12 +104,12 @@ class FusionNode:
                 new_qr_angle = time_since_object / total_time * new_qr_angle
                 new_object_angle = time_since_qr / total_time * new_object_angle
 
-                msg.value = new_qr_angle + new_object_angle
+                msg.data = new_qr_angle + new_object_angle
             else:
                 rospy.logwarn("No valid tracking information available.")
                 return
             
-        rospy.loginfo("Sending command: type = {}, value = {}".format(msg.request_type, msg.value))
+        rospy.loginfo("Sending fused angle: {}".format(msg.data))
         
         self.commands_publisher.publish(msg)
 
