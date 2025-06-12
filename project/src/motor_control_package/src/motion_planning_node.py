@@ -91,23 +91,22 @@ class MotionPlanningNode:
         """
         Update distance to the safety car as measured by the LiDAR
         """
-        self.safety_car.distance = data.distance
+        self.safety_car_position.distance = data.distance
 
     
     def publish(self, event):
         """
         Calculate and publish the required linear and angular velocities to keep up with the safety car
         """
-        rospy.logdebug("Publishing motion planning data...")
         msg = MovementRequest()
 
         # linear velocity
-        coeff = 1 if self.safety_car.distance >= TARGET_DISTANCE else -1    # if distance has increased, v_SC has increased, else v_SC has decreased
-        sc_speed = (self.distance_travelled + coeff * self.safety_car.distance) / TICK_RATE     # m/s
+        coeff = 1 if self.safety_car_position.distance >= TARGET_DISTANCE else -1    # if distance has increased, v_SC has increased, else v_SC has decreased
+        sc_speed = (self.distance_travelled + coeff * self.safety_car_position.distance) / TICK_RATE     # m/s
         msg.v = sc_speed
         
         # angle to the safety car
-        msg.theta = safety_car_position.angle    # rad
+        msg.theta = self.safety_car_position.angle    # rad
 
         rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
         self.publisher.publish(msg)
