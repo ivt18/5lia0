@@ -66,6 +66,17 @@ class ImgProcessorNode:
             
             # calibrate the camera
             if not self.calibrated:
+                """
+                prompt = input("Auto-calibrate camera? (y/N) ")
+
+                # automatic calibration
+                if prompt.lower() == "y" or prompt.lower == "yes":
+                    self.auto_calibrate_camera()
+                    if self.calibrated:
+                        return
+                """
+                
+                # manual calibration
                 if self.currcalframes < self.N_CAL_FRAMES:
                     # record N_CAL_FRAMES of the checkerboard to calibrate
                     rospy.loginfo("Recording checkerboard frame {} / {}".format(self.currcalframes + 1, self.N_CAL_FRAMES))
@@ -77,6 +88,18 @@ class ImgProcessorNode:
                     self.calibrated = True
                     cv2.destroyAllWindows()
                     rospy.loginfo("Calibration complete")
+                    
+                    """
+                    # save calibration
+                    prompt = input("Save calibration settings? (y/N) ")
+                    if prompt.lower() == "y" or prompt.lower() == "yes":
+                        try:
+                            numpy.savetxt("calibration_matrix.csv", self.calibration_matrix, delimiter=",")
+                            with open("distortion_coeff.txt", "w") as f:
+                                f.write(self.distortion_coeff)
+                        except Exception:
+                            rospy.logerr("Could not save calibration parameters")
+                    """
 
                 return
 
@@ -113,6 +136,16 @@ class ImgProcessorNode:
 
         except CvBridgeError as err:
             rospy.logerr("Error converting image: {}".format(err))
+
+    def auto_calibrate_camera(self):
+        try:
+            self.camera_matrix = np.loadtxt(open("calibration_matrix.csv", "rb"), delimiter=",")
+            with open("distortion_coeff.txt") as f:
+                self.distortion_coeff = float(f.readline())
+
+            self.calibrated = True
+        except Exception:
+            rospy.logerr("Could not open calibration files, resorting to manual calibration")
 
     def find_chessboard(self, raw_image):
         gray_img = cv2.cvtColor(raw_image, cv2.COLOR_BGR2GRAY)

@@ -9,9 +9,12 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # Add message files
-# add_message_files(
-#   FILES
-# )
+add_message_files(
+  FILES
+  EncoderData.msg
+  Position.msg
+  MovementRequest.msg
+)
 
 # Declare a catkin package
 catkin_package(

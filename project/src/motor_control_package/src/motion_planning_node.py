@@ -7,10 +7,10 @@ from std_msgs.msg import UInt16, Float64
 
 import datatypes
 
-from motor_controller_package.msg import Position, MovementRequest
+from motor_driver_package.msg import Position, MovementRequest
 
 
-TARGET_DISTANCE = 0.2   # desired distance to safety car
+TARGET_DISTANCE = 0.15  # desired distance to safety car
 TIME_TO_TARGET = 1      # desired time to reach the target position in seconds
 TICK_RATE = 0.05        # refresh rate of publisher
 
@@ -30,7 +30,7 @@ class MotionPlanningNode:
 
         # Construct subscribers
         self.position = rospy.Subscriber(
-            "motor-control/position",
+            "motor_control/position",
             Position,
             self.read_pos,
             buff_size=10,
@@ -84,8 +84,7 @@ class MotionPlanningNode:
         """
         Update the angle to the safety car as seen by the camera
         """
-        # TODO: fusion msg not yet defined
-        self.safety_car.angle = data.value
+        self.safety_car_position.angle = data.data
 
 
     def read_tof(self, data):
@@ -109,7 +108,7 @@ class MotionPlanningNode:
         # angle to the safety car
         msg.theta = safety_car.angle    # rad
 
-        # rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
+        rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
         self.publisher.publish(msg)
 
 

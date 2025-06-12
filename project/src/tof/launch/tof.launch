@@ -1,3 +1,0 @@
-<launch>
-  <node pkg="tof" type="tof_node.py" name="tof_node" output="screen"></node>
-</launch>

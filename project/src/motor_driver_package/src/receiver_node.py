@@ -55,7 +55,7 @@ class ReceiverNode:
 
 
     def safety_cb(self, data):
-        self.safety_state = StopGo(data.data)
+        self.safety_state = datatypes.StopGo(data.data)
 
 
     def receiveRequest(self, data):
@@ -64,7 +64,7 @@ class ReceiverNode:
 
         left = 0
         right = 0
-        if self.safety_state == StopGo.GO:
+        if self.safety_state == datatypes.StopGo.GO:
             mult_left = float(data.v) + self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
             mult_right = float(data.v) - self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
             left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
@@ -74,6 +74,8 @@ class ReceiverNode:
         motor_request.speed_left_wheel = left
         motor_request.speed_right_wheel = right
         self.publisher.publish(motor_request)
+
+        rospy.loginfo("Moving motors at speed: {left}/{right}".format(left=left, right=right))
 
 
 if __name__ == "__main__":
