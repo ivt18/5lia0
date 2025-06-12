@@ -85,11 +85,11 @@ class FusionNode:
 
         # QR code tracking
         if tracking_type == "qr" and not self.object_found:
-            msg.data = -self.qr_angle / 90.0
+            msg.data = self.qr_angle
 
         # Object tracking
         elif tracking_type == "object" and not self.qr_found:
-            msg.data = -self.object_angle / 90.0
+            msg.data = self.object_angle
         
         # Determine best tracking method
         else:
@@ -98,8 +98,8 @@ class FusionNode:
                 time_since_object = rospy.Time.now() - self.last_time_object_found
                 total_time = time_since_qr + time_since_object
 
-                new_qr_angle = -self.qr_angle / 90.0
-                new_object_angle = -self.object_angle / 90.0
+                new_qr_angle = self.qr_angle
+                new_object_angle = self.object_angle
 
                 new_qr_angle = time_since_object / total_time * new_qr_angle
                 new_object_angle = time_since_qr / total_time * new_object_angle

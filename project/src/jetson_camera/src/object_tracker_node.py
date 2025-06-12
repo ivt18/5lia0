@@ -163,7 +163,7 @@ class ObjectTrackerNode:
         error_x = object_x - center_x
        
 
-        angle = (kp * error_x) * 360 / (2 * np.pi)
+        angle = kp * error_x
         rospy.loginfo("angle: %s", angle)
 
         msg = TrackingInfo()
