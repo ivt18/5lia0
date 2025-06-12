@@ -55,6 +55,10 @@ class FusionNode:
 
         # Only continue if QR code tracking is successful
         if not msg.found:
+            if not self.object_found:
+                self.qr_angle = 0.0
+                self.object_angle = 0.0
+                self.send_command("qr")
             self.qr_found = False
             return
         
@@ -70,6 +74,10 @@ class FusionNode:
 
         # Only continue if object tracking is successful
         if not msg.found:
+            if not self.qr_found:
+                self.qr_angle = 0.0
+                self.object_angle = 0.0
+                self.send_command("object")
             self.object_found = False
             return
         
