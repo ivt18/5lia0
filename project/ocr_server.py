@@ -34,7 +34,7 @@ class OcrServer:
         self.close_event = threading.Event()
         self.workers = []
         # Thread: receive & enqueue
-        t_recv = threading.Thread(target=self.recv_loop)
+        t_recv = threading.Thread(target=self.recv_loop, daemon=True)
         t_recv.start()
         self.workers.append(t_recv)
 
@@ -49,8 +49,10 @@ class OcrServer:
         self.run_ui()
         
         print("[OCR] Shutting down server")
-        for t in self.workers:
-            t.join()
+        # for t in self.workers:
+        #     t.join()
+        t_recv.join()
+        self.close_event.set()
 
         self.conn.close()
         self.sock.close()
