@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 import socket
 import struct
 import threading
@@ -11,14 +12,6 @@ OCR_QUEUE_MAX = 10
 NUM_WORKERS = 3
 
 
-def recvall(conn, length):
-    data = b""
-    while len(data) < length:
-        chunk = conn.recv(length - len(data))
-        if not chunk:
-            raise EOFError("Socket closed early")
-        data += chunk
-    return data
 
 
 class OcrServer:
@@ -38,24 +31,46 @@ class OcrServer:
         self.queue: Queue[cv2.typing.MatLike] = Queue(maxsize=OCR_QUEUE_MAX)
         self.ocr_queue = Queue(maxsize=OCR_QUEUE_MAX)
 
+        self.close_event = threading.Event()
+        self.workers = []
         # Thread: receive & enqueue
-        t_recv = threading.Thread(target=self.recv_loop, daemon=True)
+        t_recv = threading.Thread(target=self.recv_loop)
         t_recv.start()
+        self.workers.append(t_recv)
 
         # Worker threads: dequeue → OCR → send
         for _ in range(NUM_WORKERS):
-            t = threading.Thread(target=self.ocr_worker, daemon=True)
+            t = threading.Thread(target=self.ocr_worker)
             t.start()
+            self.workers.append(t)
 
-        # Keep main alive
-        # t_recv.join()
+
+        # needs to run in the main thread
+        self.run_ui()
+        
+        print("[OCR] Shutting down server")
+        for t in self.workers:
+            t.join()
+
+        self.conn.close()
+        self.sock.close()
+
+    def recvall(self, length):
+        data = b""
+        while len(data) < length:
+            chunk = self.conn.recv(length - len(data))
+            if not chunk:
+                self.close_event.set()
+                raise EOFError("Socket closed early")
+            data += chunk
+        return data
 
     def recv_loop(self):
-        while True:
+        while not self.close_event.is_set():
             try:
-                raw_len = recvall(self.conn, 4)
+                raw_len = self.recvall(4)
                 img_len = struct.unpack(">I", raw_len)[0]
-                img_data = recvall(self.conn, img_len)
+                img_data = self.recvall(img_len)
                 img = cv2.imdecode(np.frombuffer(img_data, np.uint8), cv2.IMREAD_COLOR)
 
                 if self.a == 0:
@@ -72,10 +87,11 @@ class OcrServer:
                     print("[OCR] Queue full — dropping frame")
             except Exception as e:
                 print(f"[OCR] recv_loop error: {e}")
+                self.close_event.set()
                 break
 
     def ocr_worker(self):
-        while True:
+        while not self.close_event.is_set():
             img = self.queue.get()
             height, width, _ = img.shape
 
@@ -91,7 +107,7 @@ class OcrServer:
                 # print(f"[OCR] Found {results} text regions")
 
                 for bbox, text, conf in results:
-                    if conf > 0.5:
+                    if conf > 0.4:
                         print(f"[OCR] {text} ({conf:.2f})")
                         encoded_text = text.encode("utf-8")
                         text_len = struct.pack(">I", len(encoded_text))
@@ -128,7 +144,7 @@ class OcrServer:
 
     def run_ui(self):
         cv2.namedWindow("OCR Preview", cv2.WINDOW_NORMAL)
-        while True:
+        while not self.close_event.is_set():
             img = self.ocr_queue.get()
             cv2.imshow("OCR Preview", img)
             key = cv2.waitKey(1) & 0xFF
@@ -138,4 +154,8 @@ class OcrServer:
 
 
 if __name__ == "__main__":
-    OcrServer(port=9999).run_ui()
+    while True:
+        print("Starting OCR server...")
+        OcrServer(port=9999)
+        print("OCR server stopped. Restarting in 5 seconds...")
+        time.sleep(5)
