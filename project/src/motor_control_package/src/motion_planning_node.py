@@ -106,9 +106,9 @@ class MotionPlanningNode:
         msg.v = sc_speed
         
         # angle to the safety car
-        msg.theta = self.safety_car_position.angle    # rad
+        msg.angle = self.safety_car_position.angle    # rad
 
-        rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
+        rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.angle))
         self.publisher.publish(msg)
 
 
