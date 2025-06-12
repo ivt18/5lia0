@@ -47,7 +47,7 @@ class FusionNode:
         )
 
         self.initialized = True
-        rospy.loginfo("Receiver node initialized!")
+        rospy.loginfo("Fusion node initialized!")
 
     def qr_tracking_cb(self, msg):
         if not self.initialized:
