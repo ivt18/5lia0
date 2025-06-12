@@ -140,7 +140,7 @@ class ObjectTrackerNode:
             (x, y, w, h) = [int(v) for v in bbox]
             frame_raw = frame
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            self.track_object(640, x, y, w, h)
+            self.track_object(640, x, y, w, h, True)
             # self.store_image(frame_raw, x, y, w, h)
         else:
             cv2.putText(
@@ -156,18 +156,18 @@ class ObjectTrackerNode:
         cv2.waitKey(1) 
         return frame
 
-    def track_object(self, img_w, x, y, w, h):
+    def track_object(self, img_w, x, y, w, h, found):
         kp = -0.00327
         center_x = img_w / 2
         object_x = x + w/2
         error_x = object_x - center_x
        
 
-        angle = (kp * error_x) * 360 / (2 * np.pi)
+        angle = kp * error_x
         rospy.loginfo("angle: %s", angle)
 
         msg = TrackingInfo()
-        msg.found = True
+        msg.found = found
         msg.angle = angle
         self.pub_position.publish(msg)
 
@@ -198,15 +198,18 @@ class ObjectTrackerNode:
             if success:
                 x, y, w, h = [int(v) for v in bbox]
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                self.track_object(640, x, y, w, h, True)
             else:
                 rospy.loginfo("⚠️ Tracker lost target, falling back to detection.")
                 self.tracking = False  # tracker failed
+                self.track_object(640, 0, 0, 0, 0, False)
 
         # --- If not tracking or lost, run YOLO detection
         if not self.tracking:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = model(frame_rgb)
             detections = results.pred[0]  # detections for this frame
+            self.track_object(640, 0, 0, 0, 0, False)
 
             for *xyxy, conf, cls in detections:
                 class_name = model.names[int(cls)]
@@ -218,6 +221,8 @@ class ObjectTrackerNode:
                     self.tracker = cv2.TrackerCSRT_create()
                     self.tracker.init(frame, bbox)
                     self.tracking = True
+                    
+                    self.track_object(640, 0, 0, 0, 0, True)
 
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                     break

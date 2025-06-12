@@ -92,8 +92,11 @@ class QRCodeNode:
     def send_relative_command(self, found, angle=0):
         if not self.initialized:
             return
-
-        rospy.loginfo("QR code follow, angle: {}".format(angle))
+        
+        if found:
+            rospy.loginfo("QR code follow, angle: {}".format(angle))
+        else:
+            rospy.loginfo("QR code not found")
 
         msg = TrackingInfo()
         msg.found = found
@@ -164,12 +167,7 @@ class QRCodeNode:
 
         error_x = object_x - center_x
         
-        angle = kp * error_x * 180.0 / np.pi  # Convert to degrees
-        
-        if angle > 180:
-            angle -= 360
-        elif angle < -180:
-            angle += 360
+        angle = kp * error_x  # Convert to degrees
 
         self.send_relative_command(True, angle)
 
