@@ -10,11 +10,12 @@ from sensor_msgs.msg import CompressedImage
 
 from ultralytics import YOLO
 
-model = YOLO('/home/ubuntu/5lia0/yolo/runs/detect/rc_car_model3/weights/best.pt')
-model.conf = 0.4  # confidence threshold
+# model = YOLO('/home/ubuntu/5lia0/yolo/runs/detect/rc_car_model3/weights/best.pt')
+model = YOLO("yolov8n.pt")
+model.conf = 0.1  # confidence threshold
 
-output_img_dir = 'images/val'
-output_lbl_dir = 'labels/val'
+output_img_dir = 'images/temp'
+output_lbl_dir = 'labels/temp'
 os.makedirs(output_img_dir, exist_ok=True)
 os.makedirs(output_lbl_dir, exist_ok=True)
 
@@ -56,6 +57,7 @@ class ObjectTrackerNode:
         self.w = 0
         self.h = 0
         self.data = None
+        self.ctr = 638
         self.spin()
 
     def callback(self, data):
@@ -84,8 +86,10 @@ class ObjectTrackerNode:
             undistorted_image = cv2.imdecode(
                 np.frombuffer(data.raw_image.data, np.uint8), cv2.IMREAD_COLOR
             )
-            
+            # test_image = cv2.imread(f"images/val/00{self.ctr}.jpg", cv2.IMREAD_COLOR) 
+            self.ctr += 1
             tracked_image = self.detector_track(undistorted_image)
+            # tracked_image = self.track_image(undistorted_image)
 
             # publish images
             msg = ProcessedImages()
@@ -115,7 +119,7 @@ class ObjectTrackerNode:
 
     def tracker_init(self, first_frame):
         # Createtracker
-        self.tracker = cv2.TrackerCSRT_create()  # or TrackerKCF_create(), etc.
+        self.tracker = cv2.TrackerCSRT_create()
 
         # Define initial bounding box (e.g., manually or from detection)
         bbox = cv2.selectROI("Frame", first_frame, fromCenter=False, showCrosshair=True)
@@ -201,7 +205,7 @@ class ObjectTrackerNode:
 
     # track image with NN object detection
     def detector_track(self, frame):
-        if self.tracking:
+        if self.tracking and not (self.ctr % 30 == 0):
             success, bbox = self.tracker.update(frame)
             if success:
                 x, y, w, h = [int(v) for v in bbox]
@@ -210,16 +214,18 @@ class ObjectTrackerNode:
             else:
                 rospy.loginfo("⚠️ Tracker lost target, falling back to detection.")
                 self.tracking = False
-                self.track_object(640, 0, 0, 0, 0, False)
+                self.track_object(640, 320, 0, 0, 0, False)
 
-        if not self.tracking:
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.track_object(640, 0, 0, 0, 0, False)
+        else:
+            self.track_object(640, 320, 0, 0, 0, False)
+            rospy.loginfo("detecting")
 
-            results = model(frame_rgb)
+            results = model(frame)
             boxes = results[0].boxes
-            print(boxes is not None)
-            print(len(boxes))
+            for box in results[0].boxes:
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
             
             if boxes is not None and len(boxes) > 0:
                 # Get index of box with highest confidence
@@ -229,7 +235,7 @@ class ObjectTrackerNode:
                 best_box = boxes[best_idx]
 
                 x1, y1, x2, y2 = best_box.xyxy[0].tolist()
-                bbox = (x1, y1, x2-x1, y2-y1)
+                bbox = (int(x1), int(y1), int(x2-x1), int(y2-y1))
 
 
                 # (Re)initialize tracker
@@ -237,9 +243,9 @@ class ObjectTrackerNode:
                 self.tracker.init(frame, bbox)
                 self.tracking = True
                 
-                self.track_object(640, x1, y1, x2-x1, y2-y1, True)
+                self.track_object(640, int(x1), int(y1), int(x2-x1), int(y2-y1), True)
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
         
         cv2.imshow("tracked object", frame)
         cv2.waitKey(1)
