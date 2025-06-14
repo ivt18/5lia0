@@ -214,25 +214,35 @@ class ObjectTrackerNode:
 
         if not self.tracking:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = model(frame_rgb)
-            detections = results.pred[0]
             self.track_object(640, 0, 0, 0, 0, False)
 
-            for *xyxy, conf, cls in detections:
-                class_name = model.names[int(cls)]
-                if class_name == target_class:
-                    x1, y1, x2, y2 = [int(v) for v in xyxy]
-                    bbox = (x1, y1, x2 - x1, y2 - y1)
+            results = model(frame_rgb)
+            boxes = results[0].boxes
+            print(boxes is not None)
+            print(len(boxes))
+            
+            if boxes is not None and len(boxes) > 0:
+                # Get index of box with highest confidence
+                best_idx = boxes.conf.argmax()
 
-                    # (Re)initialize tracker
-                    self.tracker = cv2.TrackerCSRT_create()
-                    self.tracker.init(frame, bbox)
-                    self.tracking = True
-                    
-                    self.track_object(640, 0, 0, 0, 0, True)
+                # Extract best box
+                best_box = boxes[best_idx]
 
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    break
+                x1, y1, x2, y2 = best_box.xyxy[0].tolist()
+                bbox = (x1, y1, x2-x1, y2-y1)
+
+
+                # (Re)initialize tracker
+                self.tracker = cv2.TrackerCSRT_create()
+                self.tracker.init(frame, bbox)
+                self.tracking = True
+                
+                self.track_object(640, x1, y1, x2-x1, y2-y1, True)
+
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        
+        cv2.imshow("tracked object", frame)
+        cv2.waitKey(1)
         return frame
 
     def load_frame_id(self, path='frame_index.txt'):
