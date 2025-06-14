@@ -305,7 +305,6 @@ class OcrCompressedNode:
             try:
                 # Check connection before receiving
                 if not self.connected:
-                    rospy.sleep(1)
                     continue
                 
                 self.connection_lock.wait()
