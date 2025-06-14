@@ -16,6 +16,8 @@ from levenshtein import levenshtein
 import math
 from std_msgs.msg import Bool
 from collections import deque, Counter
+import time
+import select
 
 consensus_threshold = 3  # how many times a command must be seen before it is considered valid
 
@@ -113,6 +115,10 @@ class OcrCompressedNode:
         self.initialized = False
         # a tuple (ip, port) for the OCR server
         self.ocr_server_address = ocr_server_address
+        self.connected = False
+        self.reconnect_delay = 2 
+        self.connection_lock = threading.Lock()
+        
         rospy.init_node('ocr_node', anonymous=True)
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
 
@@ -159,24 +165,69 @@ class OcrCompressedNode:
 
         rospy.on_shutdown(self.shutdown_hook)
 
-    # TODO: make oocr server configurable from roslaunch
     def setup_connection(self, max_retries = None):
         retries = 0
         while not rospy.is_shutdown():
             try:
-                s = socket.socket()
-                s.connect(self.ocr_server_address)
-                rospy.loginfo("Connected to OCR server.")
-
-                return s
+                with self.connection_lock:
+                    if hasattr(self, 's') and self.s:
+                        try:
+                            self.s.close()
+                        except:
+                            pass
+                    
+                    s = socket.socket()
+                    s.settimeout(10)  
+                    s.connect(self.ocr_server_address)
+                    self.connected = True
+                    self.reconnect_delay = 1  
+                    rospy.loginfo("Connected to OCR server.")
+                    return s
+                    
             except socket.error as e:
-                rospy.logerr("Connection to OCR serverfailed: {}".format(e))
+                rospy.logerr("Connection to OCR server failed: {}".format(e))
+                self.connected = False
                 retries += 1
                 if max_retries is not None and retries >= max_retries:
                     rospy.signal_shutdown("Failed to connect to server after {} retries.".format(retries))
                     raise Exception("Max retries reached. Server not available.")
 
-                rospy.sleep(rospy.Duration(5))
+                # delay = min(self.reconnect_delay, self.max_reconnect_delay)
+                rospy.loginfo("Retrying connection in {} seconds...".format(self.reconnect_delay))
+                rospy.sleep(rospy.Duration(self.reconnect_delay))
+                # self.reconnect_delay = min(self.reconnect_delay * 2, self.max_reconnect_delay)
+
+    def reconnect(self):
+        """Attempt to reconnect to the OCR server"""
+        rospy.logwarn("Attempting to reconnect to OCR server...")
+        try:
+            self.s = self.setup_connection()
+            if self.s:
+                rospy.loginfo("Successfully reconnected to OCR server.")
+                return True
+        except Exception as e:
+            rospy.logerr("Reconnection failed: {}".format(e))
+        return False
+
+    def is_connected(self):
+        """Check if the socket is still connected"""
+        if not self.s:
+            return False
+        
+        try:
+            ready_to_read, ready_to_write, in_error = select.select(
+                            [self.s],
+                            [],
+                            [self.s],
+                            5)
+            
+            if self.s in ready_to_read:
+                return True 
+            
+            rospy.logwarn("OCR client socket not ready to read, assuming disconnected.")
+            return True
+        except socket.error:
+            return False
 
     def watch_history(self):
         rospy.loginfo("in watch history")
@@ -212,11 +263,29 @@ class OcrCompressedNode:
 
     def send_images(self):
         print("sending images func")
-        # TODO: can move connection setup here
         while not rospy.is_shutdown():
-            img = self.image_queue.get()
-            img_len = struct.pack('>I', len(img))
-            self.s.sendall(img_len + img)
+            try:
+                img = self.image_queue.get(timeout=1)  # Add timeout to prevent blocking
+                
+                # Check connection before sending
+                if not self.connected or not self.is_connected():
+                    rospy.logwarn("Connection lost. Attempting to reconnect...")
+                    if not self.reconnect():
+                        continue
+                
+                with self.connection_lock:
+                    img_len = struct.pack('>I', len(img))
+                    self.s.sendall(img_len + img)
+                    
+            except Queue.Empty:
+                continue
+            except (socket.error, struct.error, EOFError) as e:
+                rospy.logerr("Error sending image: {}".format(e))
+                self.connected = False
+                if not self.reconnect():
+                    rospy.sleep(1) 
+            except Exception as e:
+                rospy.logerr("Unexpected error in send_images: {}".format(e))
 
         print("sending images func cleanup")
 
@@ -231,28 +300,47 @@ class OcrCompressedNode:
         print("in receive text")
 
         while not rospy.is_shutdown():
-            raw_len = self.recvall(4)
-            if not raw_len:
-                continue
-            text_len = struct.unpack('>I', raw_len)[0]
-            text_data = self.recvall(text_len)
-            detected_text = text_data.decode('utf-8')
-            # rospy.loginfo("detected text {}".format(detected_text))
-            # self.pub_text.publish(detected_text)
-
             try:
-                self.response_queue.put_nowait(detected_text)
-            except Queue.Full:
-                rospy.loginfo("[OCR] ocr detection queue is full")
-                pass
+                # Check connection before receiving
+                if not self.connected:
+                    rospy.sleep(1)
+                    continue
+                
+                with self.connection_lock:
+                    raw_len = self.recvall(4)
+                    if not raw_len:
+                        continue
+                    text_len = struct.unpack('>I', raw_len)[0]
+                    text_data = self.recvall(text_len)
+                    
+                detected_text = text_data.decode('utf-8')
+                
+                try:
+                    self.response_queue.put_nowait(detected_text)
+                except Queue.Full:
+                    rospy.loginfo("[OCR] ocr detection queue is full")
+                    pass
+                    
+            except (socket.error, struct.error, EOFError) as e:
+                rospy.logerr("Error receiving text: {}".format(e))
+                self.connected = False
+                if not self.reconnect():
+                    rospy.sleep(1) 
+            except Exception as e:
+                rospy.logerr("Unexpected error in receive_text: {}".format(e))
+                rospy.sleep(1)
 
-        print("reeive text cleanup")
+        print("receive text cleanup")
 
     def recvall(self, length):
         data = b''
         while len(data) < length:
+            if not self.connected:
+                raise EOFError("Connection lost during receive")
+                
             more = self.s.recv(length - len(data))
             if not more:
+                self.connected = False
                 raise EOFError("Socket closed before receiving expected data")
             data += more
         return data
