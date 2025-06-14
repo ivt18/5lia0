@@ -94,7 +94,7 @@ class CommandHistory:
             score = levenshtein(ac, potential_command)
             # possible commands are completely different lexicographically we can be confident with
             # distance 1
-            if score <= 1:
+            if score <= 2:
                 # rospy.loginfo("guess: {guess}, match: {match}, score: {score}"
                               # .format(guess=potential_command, match=ac, score=score))
 
@@ -134,7 +134,7 @@ class OcrCompressedNode:
         self.commands_history = CommandHistory()
         self.command_decoder = CommandDecoder()
 
-        self.image_queue = Queue.Queue()
+        self.image_queue = deque(maxlen=5)
         self.response_queue = Queue.Queue(maxsize=2)
 
         self.sub_image = rospy.Subscriber(
@@ -222,7 +222,6 @@ class OcrCompressedNode:
                             [self.s],
                             60)
             
-            rospy.loginfo("ready_to_read: {}, ready_write: {}, in_error: {}". format(ready_to_read, ready_to_write, in_error))
             if self.s in ready_to_read  or self.s in ready_to_write:
                 return True 
             
@@ -267,7 +266,7 @@ class OcrCompressedNode:
         print("sending images func")
         while not rospy.is_shutdown():
             try:
-                img = self.image_queue.get(timeout=1)  # Add timeout to prevent blocking
+                img = self.image_queue.popleft()  # Add timeout to prevent blocking
                 
                 # Check connection before sending
                 if not self.connected or not self.is_connected():
@@ -280,7 +279,7 @@ class OcrCompressedNode:
                 img_len = struct.pack('>I', len(img))
                 self.s.sendall(img_len + img)
                     
-            except Queue.Empty:
+            except (Queue.Empty, IndexError):
                 continue
             except (socket.error, struct.error, EOFError) as e:
                 rospy.logerr("Error sending image: {}".format(e))
@@ -297,7 +296,7 @@ class OcrCompressedNode:
             return
 
         image_data = msg.undistorted_image.data
-        self.image_queue.put(image_data)
+        self.image_queue.append(image_data)
 
     def receive_text(self):
         print("in receive text")
