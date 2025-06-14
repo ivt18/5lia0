@@ -10,7 +10,7 @@ from std_msgs.msg import Bool
 
 from darknet import darknet
 
-MODEL_DIR = "/home/ubuntu/5lia0/project/src/darknet/model"
+MODEL_DIR = "/home/ubuntu/EVC/5lia0/project/src/darknet/model"
 MINIMUM_DETECTION_CONFIDENCE = 0.5
 DRAW = True
 

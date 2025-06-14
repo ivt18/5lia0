@@ -5,6 +5,7 @@ import rospy
 from std_msgs.msg import UInt16
 
 from tofDriver import VL53L0X
+from config import get_tickrate
 
 
 N = 10      # number of values to record before sending a moving average
@@ -19,7 +20,7 @@ class TofNode:
 
         # Construct publisher
         self.publisher = rospy.Publisher(
-            "/tof/distance",
+            "/motor_control/tof",
             UInt16,
             queue_size=1,
         )
@@ -32,7 +33,7 @@ class TofNode:
 
         self.initialized = True
         rospy.loginfo("Node {name} initialized!".format(name=self.node_name))
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.read_sensor)
+        self.timer = rospy.Timer(rospy.Duration(get_tickrate()), self.read_sensor)
 
     def publish(self):
         # check if at least N values have been recorded

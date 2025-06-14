@@ -25,3 +25,7 @@ def get_motor_calibration_config():
 def get_wheel_encoder_config():
     config = read_config()
     return config["wheel-encoder"]
+
+def get_tickrate():
+    config = read_config()
+    return config["tickrate"]

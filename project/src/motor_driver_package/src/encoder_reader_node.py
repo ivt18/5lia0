@@ -1,11 +1,14 @@
 #!/usr/bin/env python2
 
+import math
+
 import numpy as np
 import rospy
 
-from config import get_wheel_encoder_config
+from config import get_wheel_encoder_config, get_car_config, get_tickrate
 from encoderDriver import WheelEncoderDriver, WheelDirection
 from motor_driver_package.msg import EncoderData, MotorSpeedRequest
+from datatypes import CarConfig
 
 
 class EncoderReaderNode:
@@ -37,14 +40,18 @@ class EncoderReaderNode:
         self.driver_left = WheelEncoderDriver(config["GPIO_LEFT"])
         self.driver_right = WheelEncoderDriver(config["GPIO_RIGHT"])
 
+        # car config
+        self.config = get_car_config()
+
         # number of ticks per full wheel rotation
         self.resolution = config["resolution"]
         # last recorded value of ticks for left/right wheel
         self.ticks = (0, 0)
+        self.tickrate = get_tickrate()
 
         self.initialized = True
         rospy.loginfo("{node} initialized".format(node=node_name))
-        self.timer = rospy.Timer(rospy.Duration(0.05), self.publish)
+        self.timer = rospy.Timer(rospy.Duration(self.tickrate), self.publish)
     
     def read_motors(self, data):
         if not self.initialized:
@@ -75,6 +82,14 @@ class EncoderReaderNode:
         ticks_right = self.driver_right._ticks
         d_right = self.delta_phi(ticks_right, 1)
         msg.delta_right = d_right
+
+        # compute speed left wheel
+        distance_travelled_left = float(self.config.wheel_radius) * float(d_left)
+        msg.v_left = float(distance_travelled_left) / float(self.tickrate)
+
+        # compute speed right wheel
+        distance_travelled_right = float(self.config.wheel_radius) * float(d_right)
+        msg.v_right = float(distance_travelled_right) / float(self.tickrate)
 
         # publish message
         self.publisher.publish(msg)

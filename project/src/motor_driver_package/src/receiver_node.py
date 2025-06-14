@@ -67,8 +67,10 @@ class ReceiverNode:
         if self.safety_state == datatypes.StopGo.GO:
             mult_left = float(data.v) + self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
             mult_right = float(data.v) - self.config.wheelbase * PROPORTIONAL_GAIN * float(data.angle)
-            left = float(mult_left) * (float(self.motor_calibration["gain"]) - float(self.motor_calibration["trim"]))
-            right = float(mult_right) * (float(self.motor_calibration["gain"]) + float(self.motor_calibration["trim"]))
+            left = float(mult_left) * float(self.motor_calibration["gain"])
+            # left = 50 * left
+            right = float(mult_right) * float(self.motor_calibration["gain"])
+            # right = 50 * right
 
         motor_request = MotorSpeedRequest()
         motor_request.speed_left_wheel = left
@@ -78,9 +80,18 @@ class ReceiverNode:
         rospy.loginfo("Moving motors at speed: {left}/{right}".format(left=left, right=right))
 
 
+    def exit(self):
+        # send signal to stop spinning the wheels
+        msg = MotorSpeedRequest()
+        msg.speed_left_wheel = 0
+        msg.speed_right_wheel = 0
+        self.publisher.publish(msg)
+
+
 if __name__ == "__main__":
     try:
         receiver_node = ReceiverNode(node_name = "receiver_node")
         rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+    except rospy.ROSInterruptException as e:
+        print(e)
+

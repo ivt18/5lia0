@@ -7,3 +7,4 @@ wheel-encoder:
   GPIO_LEFT: 18
   GPIO_RIGHT: 19
   resolution: 134
+tickrate: 0.05

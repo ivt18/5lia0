@@ -7,12 +7,12 @@ from std_msgs.msg import UInt16, Float64
 
 import datatypes
 
-from motor_driver_package.msg import Position, MovementRequest
+from motor_driver_package.msg import EncoderData, Position, MovementRequest
+from config import get_tickrate
 
 
 TARGET_DISTANCE = 0.15  # desired distance to safety car
 TIME_TO_TARGET = 1      # desired time to reach the target position in seconds
-TICK_RATE = 0.05        # refresh rate of publisher
 
 
 class MotionPlanningNode:
@@ -25,14 +25,26 @@ class MotionPlanningNode:
 
         # car status
         self.position = datatypes.Position()
+        self.speed = 0
         self.distance_travelled = 0     # distance travelled since last update
-        self.safety_car_position = datatypes.SafetyCarPosition()
+        self.safety_car_position = datatypes.SafetyCarPosition(d=TARGET_DISTANCE)
+
+        # config
+        self.tickrate = get_tickrate()
 
         # Construct subscribers
         self.position = rospy.Subscriber(
             "motor_control/position",
             Position,
             self.read_pos,
+            buff_size=10,
+            queue_size=1,
+        )
+
+        self.encoder = rospy.Subscriber(
+            "motor_driver/encoder",
+            EncoderData,
+            self.read_encoder,
             buff_size=10,
             queue_size=1,
         )
@@ -62,7 +74,7 @@ class MotionPlanningNode:
 
         self.initialized = True
         rospy.loginfo("{name} initialized".format(name=self.name))
-        self.timer = rospy.Timer(rospy.Duration(TICK_RATE), self.publish)
+        self.timer = rospy.Timer(rospy.Duration(self.tickrate), self.publish)
     
 
     def read_pos(self, data):
@@ -80,6 +92,16 @@ class MotionPlanningNode:
         self.position.theta = data.theta
 
 
+    def read_encoder(self, data):
+        """
+        Calculate current ground speed from the rotational speed of the wheels
+        """
+        speed_left = float(data.v_left)
+        speed_right = float(data.v_right)
+
+        self.speed = float(speed_left + speed_right) / float(2)
+
+
     def read_camera(self, data):
         """
         Update the angle to the safety car as seen by the camera
@@ -91,7 +113,10 @@ class MotionPlanningNode:
         """
         Update distance to the safety car as measured by the LiDAR
         """
-        self.safety_car_position.distance = data.distance
+        # rospy.loginfo("received TOF: {d}".format(d=data.data))
+        # past 1.2m the reading is no longer stable and cannot be trusted
+        if data.data <= 1200:
+            self.safety_car_position.distance = float(data.data) / 1000
 
     
     def publish(self, event):
@@ -101,14 +126,23 @@ class MotionPlanningNode:
         msg = MovementRequest()
 
         # linear velocity
-        coeff = 1 if self.safety_car_position.distance >= TARGET_DISTANCE else -1    # if distance has increased, v_SC has increased, else v_SC has decreased
-        sc_speed = (self.distance_travelled + coeff * self.safety_car_position.distance) / TICK_RATE     # m/s
-        msg.v = sc_speed
+        """
+        distance_error = self.safety_car_position.distance - TARGET_DISTANCE            # difference between target distance to SC and actual distance
+        coeff = 1 if self.safety_car_position.distance >= TARGET_DISTANCE else -1       # if distance has increased, v_SC has increased, else v_SC has decreased
+        distance_sc = self.distance_travelled + coeff * (self.safety_car_position.distance - TARGET_DISTANCE)   # distance travelled by the SC since last tick     
+        d = distance_error + distance_sc                                                # distance that needs to be travelled until the next tick
+        msg.v = d / self.tickrate
+        """
+        distance_error = self.safety_car_position.distance - TARGET_DISTANCE            # difference between target distance to SC and actual distance
+        speed_adjustment = distance_error / (5 * self.tickrate)                               # m/s
+        total_speed = self.speed + speed_adjustment
+        msg.v = 0.5
         
         # angle to the safety car
         msg.angle = self.safety_car_position.angle    # rad
 
-        rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.angle))
+        # rospy.loginfo("d_SC: {dsc};\td_T: {dt}\td_e: {de}".format(dsc=self.safety_car_position.distance, dt=TARGET_DISTANCE, de=distance_error))
+        rospy.loginfo("v: {v_now}\ttarget v: {v};\ttarget angle: {theta}".format(v_now=self.speed, v=msg.v, theta=msg.angle))
         self.publisher.publish(msg)
 
 
@@ -116,6 +150,6 @@ if __name__ == '__main__':
     mp_node = MotionPlanningNode("motion_planning_node")
     try:
         rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+    except rospy.ROSInterruptException as e:
+        print(e)
 
