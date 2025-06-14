@@ -117,7 +117,7 @@ class OcrCompressedNode:
         self.ocr_server_address = ocr_server_address
         self.connected = False
         self.reconnect_delay = 2 
-        self.connection_lock = threading.Lock()
+        self.connection_lock = threading.Event()
         
         rospy.init_node('ocr_node', anonymous=True)
         rospy.loginfo("OCR Node (CompressedImage) initialized.")
@@ -167,22 +167,23 @@ class OcrCompressedNode:
 
     def setup_connection(self, max_retries = None):
         retries = 0
+        self.connection_lock.clear()
         while not rospy.is_shutdown():
             try:
-                with self.connection_lock:
-                    if hasattr(self, 's') and self.s:
-                        try:
-                            self.s.close()
-                        except:
-                            pass
-                    
-                    s = socket.socket()
-                    s.settimeout(10)  
-                    s.connect(self.ocr_server_address)
-                    self.connected = True
-                    self.reconnect_delay = 1  
-                    rospy.loginfo("Connected to OCR server.")
-                    return s
+                if hasattr(self, 's') and self.s:
+                    try:
+                        self.s.close()
+                    except:
+                        pass
+                
+                s = socket.socket()
+                s.settimeout(10)  
+                s.connect(self.ocr_server_address)
+                self.connected = True
+                self.reconnect_delay = 1  
+                rospy.loginfo("Connected to OCR server.")
+                self.connection_lock.set()
+                return s
                     
             except socket.error as e:
                 rospy.logerr("Connection to OCR server failed: {}".format(e))
@@ -222,11 +223,11 @@ class OcrCompressedNode:
                             60)
             
             rospy.loginfo("ready_to_read: {}, ready_write: {}, in_error: {}". format(ready_to_read, ready_to_write, in_error))
-            if self.s in ready_to_read:
+            if self.s in ready_to_read  or self.s in ready_to_write:
                 return True 
             
             rospy.logwarn("OCR client socket not ready to read, assuming disconnected.")
-            return True
+            return False
         except socket.error:
             return False
 
@@ -274,9 +275,10 @@ class OcrCompressedNode:
                     if not self.reconnect():
                         continue
                 
-                with self.connection_lock:
-                    img_len = struct.pack('>I', len(img))
-                    self.s.sendall(img_len + img)
+                # with self.connection_lock:
+                self.connection_lock.wait()
+                img_len = struct.pack('>I', len(img))
+                self.s.sendall(img_len + img)
                     
             except Queue.Empty:
                 continue
@@ -307,12 +309,12 @@ class OcrCompressedNode:
                     rospy.sleep(1)
                     continue
                 
-                with self.connection_lock:
-                    raw_len = self.recvall(4)
-                    if not raw_len:
-                        continue
-                    text_len = struct.unpack('>I', raw_len)[0]
-                    text_data = self.recvall(text_len)
+                self.connection_lock.wait()
+                raw_len = self.recvall(4)
+                if not raw_len:
+                    continue
+                text_len = struct.unpack('>I', raw_len)[0]
+                text_data = self.recvall(text_len)
                     
                 detected_text = text_data.decode('utf-8')
                 
