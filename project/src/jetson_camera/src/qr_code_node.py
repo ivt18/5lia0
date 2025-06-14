@@ -134,13 +134,15 @@ class QRCodeNode:
                         # rospy.loginfo("QR code points: {}".format(points))
 
                         self.track_object(w, points)
-                    else:
-                        # Drive forward if QR code detected
-                        self.send_command(True, data=retval)
-                else:
-                    # # Display if no QR code was detected
-                    # cv2.putText(undistorted_image, "No QR code detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    elif (retval == "rotate left"):
+                        self.send_relative_command(True, -1.0)  # Rotate left
+                    elif (retval == "rotate right"):
+                        self.send_relative_command(True, 1.0)
 
+                    # else:
+                    #     # Drive forward if QR code detected
+                    #     self.send_command(True, data=retval)
+                else:
                     # Send command that no QR code was found
                     self.send_relative_command(False)
 
@@ -167,7 +169,7 @@ class QRCodeNode:
 
         error_x = object_x - center_x
         
-        angle = kp * error_x  # Convert to degrees
+        angle = kp * error_x
 
         self.send_relative_command(True, angle)
 

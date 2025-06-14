@@ -38,8 +38,7 @@ class MotorDriverNode:
             left = motor_data.speed_left_wheel,
             right = motor_data.speed_right_wheel
         )
-        rospy.loginfo("Received request: left_wheel = %f, right_wheel = %f",
-            motor_data.speed_left_wheel, motor_data.speed_right_wheel)
+        # rospy.loginfo("Received request: left_wheel = %f, right_wheel = %f", motor_data.speed_left_wheel, motor_data.speed_right_wheel)
 
 
 if __name__ == "__main__":

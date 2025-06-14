@@ -12,3 +12,8 @@ class SafetyCarPosition:
         self.distance = d
         self.angle = a
 
+
+class CarConfig:
+    def __init__(self, radius, wheelbase):
+        self.wheel_radius = radius
+        self.wheelbase = wheelbase

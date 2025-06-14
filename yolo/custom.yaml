@@ -1,0 +1,5 @@
+train: /home/ubuntu/.ros/images/train
+val: /home/ubuntu/.ros/images/val
+
+nc: 1
+names: ['rc_car']

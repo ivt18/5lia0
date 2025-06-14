@@ -7,10 +7,10 @@ from std_msgs.msg import UInt16, Float64
 
 import datatypes
 
-from motor_controller_package.msg import Position, MovementRequest
+from motor_driver_package.msg import Position, MovementRequest
 
 
-TARGET_DISTANCE = 0.2   # desired distance to safety car
+TARGET_DISTANCE = 0.15  # desired distance to safety car
 TIME_TO_TARGET = 1      # desired time to reach the target position in seconds
 TICK_RATE = 0.05        # refresh rate of publisher
 
@@ -30,7 +30,7 @@ class MotionPlanningNode:
 
         # Construct subscribers
         self.position = rospy.Subscriber(
-            "motor-control/position",
+            "motor_control/position",
             Position,
             self.read_pos,
             buff_size=10,
@@ -84,32 +84,31 @@ class MotionPlanningNode:
         """
         Update the angle to the safety car as seen by the camera
         """
-        # TODO: fusion msg not yet defined
-        self.safety_car.angle = data.value
+        self.safety_car_position.angle = data.data
 
 
     def read_tof(self, data):
         """
         Update distance to the safety car as measured by the LiDAR
         """
-        self.safety_car.distance = data.distance
+        self.safety_car_position.distance = data.distance
 
     
-    def publish(self):
+    def publish(self, event):
         """
         Calculate and publish the required linear and angular velocities to keep up with the safety car
         """
         msg = MovementRequest()
 
         # linear velocity
-        coeff = 1 if self.safety_car.distance >= TARGET_DISTANCE else -1    # if distance has increased, v_SC has increased, else v_SC has decreased
-        sc_speed = (self.distance_travelled + coeff * self.safety_car.distance) / TICK_RATE     # m/s
+        coeff = 1 if self.safety_car_position.distance >= TARGET_DISTANCE else -1    # if distance has increased, v_SC has increased, else v_SC has decreased
+        sc_speed = (self.distance_travelled + coeff * self.safety_car_position.distance) / TICK_RATE     # m/s
         msg.v = sc_speed
         
         # angle to the safety car
-        msg.theta = safety_car.angle    # rad
+        msg.angle = self.safety_car_position.angle    # rad
 
-        # rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.theta))
+        rospy.loginfo("target v: {v};\ttarget angle: {theta}".format(v=msg.v, theta=msg.angle))
         self.publisher.publish(msg)
 
 
