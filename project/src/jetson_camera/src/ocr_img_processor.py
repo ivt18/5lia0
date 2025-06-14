@@ -221,6 +221,7 @@ class OcrCompressedNode:
                             [self.s],
                             5)
             
+            rospy.loginfo("ready_to_read: {}, ready_write: {}, in_error: {}". format(ready_to_read, ready_to_write, in_error))
             if self.s in ready_to_read:
                 return True 
             
