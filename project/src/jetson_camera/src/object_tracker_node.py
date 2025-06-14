@@ -6,12 +6,12 @@ import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from jetson_camera.msg import ProcessedImages, TrackingInfo
 from sensor_msgs.msg import CompressedImage
-import torch
+# import torch
 
 from ultralytics import YOLO
 
-# model = YOLO('home/ubuntu/.ros/detect/train/weights/best.pt')
-# model.conf = 0.4  # confidence threshold
+model = YOLO('/home/ubuntu/5lia0/yolo/runs/detect/rc_car_model3/weights/best.pt')
+model.conf = 0.4  # confidence threshold
 
 output_img_dir = 'images/val'
 output_lbl_dir = 'labels/val'
@@ -22,6 +22,7 @@ class ObjectTrackerNode:
     def __init__(self):
         self.initialized = False
         rospy.loginfo("Initializing object tracker node...")
+        print(os.getcwd())
         self.bridge = CvBridge()
         self.frame_id = self.load_frame_id()
 
@@ -84,7 +85,7 @@ class ObjectTrackerNode:
                 np.frombuffer(data.raw_image.data, np.uint8), cv2.IMREAD_COLOR
             )
             
-            tracked_image = self.track_image(undistorted_image)
+            tracked_image = self.detector_track(undistorted_image)
 
             # publish images
             msg = ProcessedImages()
@@ -106,7 +107,7 @@ class ObjectTrackerNode:
                 msg.raw_image = compressed_image_raw
                 msg.undistorted_image = compressed_image_undistorted
                 # Publish the image
-                self.pub_image.publish(msg)
+                # self.pub_image.publish(msg)
                 rospy.loginfo("Sent processed image")
 
         except CvBridgeError as err:
@@ -126,6 +127,7 @@ class ObjectTrackerNode:
         rospy.loginfo("Tracker initialized.")
         return
 
+    # track object without object detection (might lose track when object leaves frame)
     def track_image(self, frame):
         if not self.tracker_is_init:
             self.tracker_init(frame)
@@ -141,6 +143,7 @@ class ObjectTrackerNode:
             frame_raw = frame
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             self.track_object(640, x, y, w, h, True)
+            self.store_image(frame_raw, x, y, w, h)
             # self.store_image(frame_raw, x, y, w, h)
         else:
             cv2.putText(
@@ -152,25 +155,28 @@ class ObjectTrackerNode:
                 (0, 0, 255),
                 2,
             )
+            self.tracker_is_init = False
+            self.tracker_init(frame);
         cv2.imshow("tracked object", frame)
         cv2.waitKey(1) 
         return frame
-
+    
+    #  find object angle and send it to fusion node
     def track_object(self, img_w, x, y, w, h, found):
-        kp = -0.00327
+        kp = -0.0010
         center_x = img_w / 2
         object_x = x + w/2
         error_x = object_x - center_x
        
-
-        angle = kp * error_x
-        rospy.loginfo("angle: %s", angle)
+        angle = (kp * error_x)
+        rospy.loginfo("object angle: %s", angle)
 
         msg = TrackingInfo()
         msg.found = found
         msg.angle = angle
         self.pub_position.publish(msg)
 
+    # stores image with corresponding label to train the NN
     def store_image(self, frame_raw, x, y, w, h):
         img_h, img_w = frame_raw.shape[:2]
 
@@ -179,6 +185,7 @@ class ObjectTrackerNode:
         cy = (y + h / 2) / img_h
         nw = w / img_w 
         nh = h / img_h
+        self.frame_id = self.load_frame_id()
 
         # Save image and label
         img_name = f"{self.frame_id:05d}.jpg"
@@ -192,6 +199,7 @@ class ObjectTrackerNode:
         self.frame_id += 1
         self.save_frame_id(self.frame_id)
 
+    # track image with NN object detection
     def detector_track(self, frame):
         if self.tracking:
             success, bbox = self.tracker.update(frame)
@@ -201,14 +209,13 @@ class ObjectTrackerNode:
                 self.track_object(640, x, y, w, h, True)
             else:
                 rospy.loginfo("⚠️ Tracker lost target, falling back to detection.")
-                self.tracking = False  # tracker failed
+                self.tracking = False
                 self.track_object(640, 0, 0, 0, 0, False)
 
-        # --- If not tracking or lost, run YOLO detection
         if not self.tracking:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = model(frame_rgb)
-            detections = results.pred[0]  # detections for this frame
+            detections = results.pred[0]
             self.track_object(640, 0, 0, 0, 0, False)
 
             for *xyxy, conf, cls in detections:
